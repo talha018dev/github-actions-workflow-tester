@@ -4,8 +4,8 @@
  * DO NOT USE IN PRODUCTION
  */
 
-// Issue 1: Hardcoded API key
-export const API_SECRET = "sk_live_1234567890abcdefghijklmnop"; // ❌ VULNERABILITY
+// Issue 1: Hardcoded API key (using fake format to avoid GitHub secret scanning)
+export const API_SECRET = "FAKE_API_KEY_1234567890_DO_NOT_USE"; // ❌ VULNERABILITY: Hardcoded secret
 
 // Issue 2: SQL Injection vulnerability
 export function getUserById(userId: string) {

@@ -57,7 +57,7 @@ export function VulnerableComponent() {
   };
 
   // ❌ VULNERABILITY: Hardcoded secret (for testing)
-  const API_KEY = "sk_live_1234567890abcdef"; // ❌ Should use environment variable
+  const API_KEY = "FAKE_API_KEY_FOR_TESTING_ONLY"; // ❌ Should use environment variable
 
   return (
     <div className="p-4">

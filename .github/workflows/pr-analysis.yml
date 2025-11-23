@@ -244,18 +244,35 @@ jobs:
                       console.log('Review preview (first 500 chars):', review.substring(0, 500));
                       
                       // Validate that the review actually contains findings
-                      const hasFindings = review.toLowerCase().includes('issue') || 
-                                         review.toLowerCase().includes('problem') || 
-                                         review.toLowerCase().includes('error') ||
-                                         review.toLowerCase().includes('bad') ||
-                                         review.toLowerCase().includes('violation') ||
-                                         review.toLowerCase().includes('❌');
+                      const reviewLower = review.toLowerCase();
+                      const hasFindings = reviewLower.includes('issue') || 
+                                         reviewLower.includes('problem') || 
+                                         reviewLower.includes('error') ||
+                                         reviewLower.includes('bad') ||
+                                         reviewLower.includes('violation') ||
+                                         reviewLower.includes('❌') ||
+                                         reviewLower.includes('critical') ||
+                                         reviewLower.includes('security') ||
+                                         reviewLower.includes('bug') ||
+                                         reviewLower.includes('leak') ||
+                                         reviewLower.includes('memory') ||
+                                         reviewLower.includes('performance') ||
+                                         reviewLower.includes('anti-pattern');
+                      
+                      // Count issues found
+                      const issueCount = (reviewLower.match(/\b(issue|problem|error|bug|violation|critical|security|leak|anti-pattern)\b/g) || []).length;
+                      
+                      console.log('Review contains findings:', hasFindings);
+                      console.log('Estimated issue count:', issueCount);
                       
                       if (!hasFindings && review.length < 500) {
                         console.warn('Review seems too short or generic. Review content:', review);
                       }
                       
+                      // Set output for review and whether issues were found
                       core.setOutput('review', review);
+                      core.setOutput('has-issues', hasFindings ? 'true' : 'false');
+                      core.setOutput('issue-count', issueCount.toString());
                     } else {
                       const errorMsg = responseData.length > 500 ? responseData.substring(0, 500) : responseData;
                       console.error('API Error:', res.statusCode, errorMsg);
@@ -289,12 +306,18 @@ jobs:
         if: steps.cursor-review.outputs.review
         env:
           REVIEW_TEXT: ${{ steps.cursor-review.outputs.review }}
+          HAS_ISSUES: ${{ steps.cursor-review.outputs.has-issues }}
+          ISSUE_COUNT: ${{ steps.cursor-review.outputs.issue-count }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const review = process.env.REVIEW_TEXT || '';
+            const hasIssues = process.env.HAS_ISSUES === 'true';
+            const issueCount = parseInt(process.env.ISSUE_COUNT || '0', 10);
             
             console.log('Review text length:', review.length);
+            console.log('Has issues:', hasIssues);
+            console.log('Issue count:', issueCount);
             console.log('Review preview:', review.substring(0, 300));
             
             if (!review || review.trim() === '') {
@@ -319,7 +342,12 @@ jobs:
                 c.body && c.body.includes('🤖 Cursor AI Code Review')
               );
               
-              const commentBody = '## 🤖 Cursor AI Code Review\n\n' + review + '\n\n---\n*This review was automatically generated using Cursor AI via GitHub Actions.*';
+              // Add status badge to comment
+              const statusBadge = hasIssues 
+                ? '## ⚠️ Code Review: Issues Found (' + issueCount + ' issues detected)\n\n' 
+                : '## ✅ Code Review: No Issues Found\n\n';
+              
+              const commentBody = statusBadge + review + '\n\n---\n*This review was automatically generated using Cursor AI via GitHub Actions.*';
               
               if (existingComment) {
                 await github.rest.issues.updateComment({
@@ -346,6 +374,14 @@ jobs:
               }
               throw error;
             }
+
+      - name: Fail if issues found
+        if: steps.cursor-review.outputs.has-issues == 'true'
+        run: |
+          echo "❌ Code review found issues that need to be addressed!"
+          echo "Issue count: ${{ steps.cursor-review.outputs.issue-count }}"
+          echo "Please review the AI code review comment for details."
+          exit 1
 
   summary:
     name: Analysis Summary

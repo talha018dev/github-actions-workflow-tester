@@ -295,13 +295,24 @@ jobs:
                       // If review is substantial and mentions files, likely has findings
                       const likelyHasIssues = hasFindings || (review.length > 1000 && mentionsFiles);
                       
-                      if (!likelyHasIssues && review.length < 500) {
+                      // AGGRESSIVE: If review is substantial (over 500 chars) and we have code files, assume issues found
+                      // This catches cases where AI doesn't use exact keywords but still reviews code
+                      const hasCodeFiles = prData.files && prData.files.length > 0;
+                      const reviewIsSubstantial = review.length > 500;
+                      const definitelyHasIssues = likelyHasIssues || (hasCodeFiles && reviewIsSubstantial && !reviewLower.includes('no issues found') && !reviewLower.includes('no problems found') && !reviewLower.includes('looks good') && !reviewLower.includes('code is good'));
+                      
+                      console.log('Has code files:', hasCodeFiles);
+                      console.log('Review is substantial:', reviewIsSubstantial);
+                      console.log('Review mentions "no issues":', reviewLower.includes('no issues found'));
+                      console.log('Definitely has issues:', definitelyHasIssues);
+                      
+                      if (!definitelyHasIssues && review.length < 500) {
                         console.warn('Review seems too short or generic. Review content:', review);
                       }
                       
                       // Set output for review and whether issues were found
                       core.setOutput('review', review);
-                      core.setOutput('has-issues', likelyHasIssues ? 'true' : 'false');
+                      core.setOutput('has-issues', definitelyHasIssues ? 'true' : 'false');
                       core.setOutput('issue-count', issueCount.toString());
                     } else {
                       const errorMsg = responseData.length > 500 ? responseData.substring(0, 500) : responseData;
@@ -412,9 +423,32 @@ jobs:
           echo "Issue count: ${{ steps.cursor-review.outputs.issue-count }}"
           echo "Please review the AI code review comment for details."
           echo ""
-          echo "Review preview:"
-          echo "${{ steps.cursor-review.outputs.review }}" | head -n 20
+          echo "Review preview (first 30 lines):"
+          echo "${{ steps.cursor-review.outputs.review }}" | head -n 30
           exit 1
+      
+      - name: Fail if review seems incomplete
+        if: steps.cursor-review.outputs.review && steps.cursor-review.outputs.has-issues != 'true'
+        run: |
+          REVIEW="${{ steps.cursor-review.outputs.review }}"
+          REVIEW_LOWER=$(echo "$REVIEW" | tr '[:upper:]' '[:lower:]')
+          
+          # Check if review explicitly says no issues
+          if echo "$REVIEW_LOWER" | grep -q "no issues found\|no problems found\|looks good\|code is good\|everything looks fine"; then
+            echo "✅ Review explicitly states no issues found"
+            exit 0
+          fi
+          
+          # If review exists but doesn't explicitly say no issues, and we have code files, fail
+          if [ -n "$REVIEW" ] && [ ${#REVIEW} -gt 200 ]; then
+            echo "⚠️ Review generated but issue detection may have failed"
+            echo "Review length: ${#REVIEW}"
+            echo "Review preview:"
+            echo "$REVIEW" | head -n 20
+            echo ""
+            echo "Failing check to ensure code quality - please verify review manually"
+            exit 1
+          fi
       
       - name: Debug - Show review status
         if: always()

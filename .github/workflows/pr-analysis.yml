@@ -86,6 +86,7 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -167,9 +168,16 @@ jobs:
             
             let prData;
             try {
-              prData = JSON.parse(prDataStr);
+              // Remove any potential BOM or whitespace
+              const cleaned = prDataStr.trim();
+              if (!cleaned || cleaned === '') {
+                core.setOutput('review', '⚠️ PR data is empty');
+                return;
+              }
+              prData = JSON.parse(cleaned);
             } catch (e) {
-              core.setOutput('review', '⚠️ Failed to parse PR data: ' + e.message);
+              core.setOutput('review', '⚠️ Failed to parse PR data: ' + e.message + '. Data length: ' + prDataStr.length);
+              console.error('PR Data (first 200 chars):', prDataStr.substring(0, 200));
               return;
             }
             
@@ -257,51 +265,67 @@ jobs:
       - name: Post Cursor Review Comment
         uses: actions/github-script@v7
         if: steps.cursor-review.outputs.review
+        env:
+          REVIEW_TEXT: ${{ steps.cursor-review.outputs.review }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const review = '${{ steps.cursor-review.outputs.review }}';
+            const review = process.env.REVIEW_TEXT || '';
             
             if (!review || review.includes('⚠️')) {
-              console.log('Skipping comment due to review error');
+              console.log('Skipping comment due to review error or warning');
               return;
             }
             
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            
-            const existingComment = comments.find(c => 
-              c.user.type === 'Bot' && 
-              c.body.includes('🤖 Cursor AI Code Review')
-            );
-            
-            const commentBody = '## 🤖 Cursor AI Code Review\n\n' + review + '\n\n---\n*This review was automatically generated using Cursor AI via GitHub Actions.*';
-            
-            if (existingComment) {
-              await github.rest.issues.updateComment({
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: existingComment.id,
-                body: commentBody
-              });
-            } else {
-              await github.rest.issues.createComment({
                 issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: commentBody
               });
+              
+              const existingComment = comments.find(c => 
+                c.user && c.user.type === 'Bot' && 
+                c.body && c.body.includes('🤖 Cursor AI Code Review')
+              );
+              
+              const commentBody = '## 🤖 Cursor AI Code Review\n\n' + review + '\n\n---\n*This review was automatically generated using Cursor AI via GitHub Actions.*';
+              
+              if (existingComment) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existingComment.id,
+                  body: commentBody
+                });
+                console.log('Updated existing review comment');
+              } else {
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: commentBody
+                });
+                console.log('Created new review comment');
+              }
+            } catch (error) {
+              console.error('Error posting comment:', error.message);
+              if (error.status === 403) {
+                console.error('Permission denied. This might be a PR from a fork. Forks have limited permissions.');
+                console.error('Review content:', review.substring(0, 200) + '...');
+              }
+              throw error;
             }
 
   summary:
     name: Analysis Summary
     runs-on: ubuntu-latest
-    # needs: [codeql-analysis, sonarcloud-analysis, cursor-ai-review]
     needs: [cursor-ai-review]
     if: always()
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     
     steps:
       - name: Checkout repository
@@ -323,31 +347,40 @@ jobs:
             
             const summary = '## 📊 PR Analysis Summary\n\n| Analysis | Status |\n|----------|--------|\n| Cursor AI Review | ' + statusIcon(cursorReviewStatus) + ' ' + cursorReviewStatus + ' |\n\n### 🔍 Details\n- **Cursor AI**: Automated code review using Cursor AI completed\n\n' + (cursorReviewStatus === 'failure' ? '⚠️ **Action Required**: Please review the failed checks above.' : '✅ Review completed!') + '\n\n---\n*This summary is automatically generated by GitHub Actions.*';
             
-            // Check if summary comment already exists
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            
-            const existingSummary = comments.find(c => 
-              c.user.type === 'Bot' && 
-              c.body.includes('📊 PR Analysis Summary')
-            );
-            
-            if (existingSummary) {
-              await github.rest.issues.updateComment({
+            try {
+              const { data: comments } = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: existingSummary.id,
-                body: summary
-              });
-            } else {
-              await github.rest.issues.createComment({
                 issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: summary
               });
+              
+              const existingSummary = comments.find(c => 
+                c.user && c.user.type === 'Bot' && 
+                c.body && c.body.includes('📊 PR Analysis Summary')
+              );
+              
+              if (existingSummary) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: existingSummary.id,
+                  body: summary
+                });
+                console.log('Updated existing summary comment');
+              } else {
+                await github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: summary
+                });
+                console.log('Created new summary comment');
+              }
+            } catch (error) {
+              console.error('Error posting summary comment:', error.message);
+              if (error.status === 403) {
+                console.error('Permission denied. This might be a PR from a fork. Forks have limited permissions.');
+              }
+              // Don't throw - allow workflow to complete even if comment fails
             }
 

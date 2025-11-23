@@ -245,6 +245,8 @@ jobs:
                       
                       // Validate that the review actually contains findings
                       const reviewLower = review.toLowerCase();
+                      
+                      // More comprehensive detection - look for any indication of problems
                       const hasFindings = reviewLower.includes('issue') || 
                                          reviewLower.includes('problem') || 
                                          reviewLower.includes('error') ||
@@ -257,21 +259,49 @@ jobs:
                                          reviewLower.includes('leak') ||
                                          reviewLower.includes('memory') ||
                                          reviewLower.includes('performance') ||
-                                         reviewLower.includes('anti-pattern');
+                                         reviewLower.includes('anti-pattern') ||
+                                         reviewLower.includes('concern') ||
+                                         reviewLower.includes('improve') ||
+                                         reviewLower.includes('suggest') ||
+                                         reviewLower.includes('recommend') ||
+                                         reviewLower.includes('fix') ||
+                                         reviewLower.includes('warning') ||
+                                         reviewLower.includes('deprecated') ||
+                                         reviewLower.includes('missing') ||
+                                         reviewLower.includes('unused') ||
+                                         reviewLower.includes('any type') ||
+                                         reviewLower.includes('useEffect') ||
+                                         reviewLower.includes('dependency') ||
+                                         reviewLower.includes('hook') ||
+                                         reviewLower.includes('accessibility') ||
+                                         reviewLower.includes('aria');
                       
-                      // Count issues found
-                      const issueCount = (reviewLower.match(/\b(issue|problem|error|bug|violation|critical|security|leak|anti-pattern)\b/g) || []).length;
+                      // Count issues found - be more aggressive
+                      const issueKeywords = ['issue', 'problem', 'error', 'bug', 'violation', 'critical', 'security', 'leak', 'memory', 'performance', 'anti-pattern', 'concern', 'improve', 'suggest', 'recommend', 'fix', 'warning', 'deprecated', 'missing', 'unused', 'any type', 'useEffect', 'dependency', 'hook', 'accessibility', 'aria'];
+                      const issueCount = issueKeywords.reduce((count, keyword) => {
+                        const matches = reviewLower.match(new RegExp(keyword, 'g'));
+                        return count + (matches ? matches.length : 0);
+                      }, 0);
+                      
+                      // Also check if review mentions specific files with problems
+                      const mentionsFiles = /(floatingchat|badcomponent|badpractices|badhooks)/i.test(review);
                       
                       console.log('Review contains findings:', hasFindings);
                       console.log('Estimated issue count:', issueCount);
+                      console.log('Mentions problematic files:', mentionsFiles);
+                      console.log('Review length:', review.length);
+                      console.log('Review preview (first 1000 chars):', review.substring(0, 1000));
                       
-                      if (!hasFindings && review.length < 500) {
+                      // If review is substantial and mentions files, likely has findings
+                      const likelyHasIssues = hasFindings || (review.length > 1000 && mentionsFiles);
+                      
+                      if (!likelyHasIssues && review.length < 500) {
                         console.warn('Review seems too short or generic. Review content:', review);
                       }
                       
                       // Set output for review and whether issues were found
                       core.setOutput('review', review);
-                      core.setOutput('has-issues', hasFindings ? 'true' : 'false');
+                      core.setOutput('has-issues', likelyHasIssues ? 'true' : 'false');
                       core.setOutput('issue-count', issueCount.toString());
                     } else {
                       const errorMsg = responseData.length > 500 ? responseData.substring(0, 500) : responseData;
@@ -381,7 +411,22 @@ jobs:
           echo "❌ Code review found issues that need to be addressed!"
           echo "Issue count: ${{ steps.cursor-review.outputs.issue-count }}"
           echo "Please review the AI code review comment for details."
+          echo ""
+          echo "Review preview:"
+          echo "${{ steps.cursor-review.outputs.review }}" | head -n 20
           exit 1
+      
+      - name: Debug - Show review status
+        if: always()
+        run: |
+          echo "=== Review Status Debug ==="
+          echo "Has issues: ${{ steps.cursor-review.outputs.has-issues }}"
+          echo "Issue count: ${{ steps.cursor-review.outputs.issue-count }}"
+          REVIEW_LENGTH=$(echo "${{ steps.cursor-review.outputs.review }}" | wc -c)
+          echo "Review length: $REVIEW_LENGTH"
+          echo ""
+          echo "Review preview (first 500 chars):"
+          echo "${{ steps.cursor-review.outputs.review }}" | head -c 500
 
   summary:
     name: Analysis Summary

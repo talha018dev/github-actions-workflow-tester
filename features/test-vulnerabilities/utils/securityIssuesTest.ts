@@ -12,7 +12,7 @@ export function getUserById(userId: string) {
   // ❌ VULNERABILITY: SQL Injection - user input directly in query
   const query = `SELECT * FROM users WHERE id = ${userId}`;
   return query; // In real code, this would execute the query
-}
+} 
 
 // Issue 3: Command Injection
 export function executeCommand(userInput: string) {

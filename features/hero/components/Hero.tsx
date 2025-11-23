@@ -1,50 +1,65 @@
 "use client";
 
-import { Button, Container, Title, Text } from "@mantine/core";
-import { useHero } from "../hooks/useHero";
+import { Badge, Button, Container, Group, Text, Title } from "@mantine/core";
+import { GridShowcase } from "./GridShowcase";
 
 export function Hero() {
-  const { handleGetStarted } = useHero();
-
   return (
-    <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20 md:py-32">
+    <section className="bg-white dark:bg-gray-900 pt-10 pb-20 md:pt-20 md:pb-32 overflow-hidden transition-colors">
       <Container size="xl">
-        <div className="text-center space-y-6 md:space-y-8">
-          <Title
-            order={1}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900"
-          >
-            Welcome to Our
-            <span className="block text-indigo-600 mt-2">
-              Modern Platform
-            </span>
-          </Title>
-          <Text
-            size="lg"
-            className="text-gray-600 max-w-2xl mx-auto text-base sm:text-lg md:text-xl px-4"
-          >
-            Build amazing experiences with Next.js 16, Tailwind CSS v4, and
-            Mantine v8. A fully responsive and modern web application.
-          </Text>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Button
-              size="lg"
-              onClick={handleGetStarted}
-              className="w-full sm:w-auto px-8"
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left Content */}
+          <div className="space-y-8 relative z-10">
+            <Badge variant="light" color="gray" size="lg" radius="sm" className="bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-normal normal-case pl-1 pr-3 py-4 h-auto">
+              <span className="mr-2 bg-white dark:bg-gray-700 px-2 py-0.5 rounded-sm border border-gray-200 dark:border-gray-600 text-xs font-bold text-gray-900 dark:text-white">New</span>
+              Introducing Nodus Agent Template &rsaquo;
+            </Badge>
+            
+            <Title
+              className="text-5xl sm:text-6xl md:text-7xl font-bold text-gray-900 dark:text-white tracking-tight leading-[1.1]"
             >
-              Get Started
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto px-8"
+              Make your <br />
+              websites look <br />
+              <span className="inline-flex items-baseline">
+                10x
+                <span className="ml-3 px-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-900 dark:text-white">modern</span>
+              </span>
+            </Title>
+            
+            <Text
+              size="xl"
+              className="text-gray-700 dark:text-gray-300 max-w-lg leading-relaxed"
             >
-              Learn More
-            </Button>
+              Copy paste the most trending components and use them in your
+              websites without having to worry about styling and animations.
+            </Text>
+            
+            <Group gap="md">
+              <Button
+                size="xl"
+                color="dark"
+                radius="md"
+                className="bg-gray-900 dark:bg-white hover:bg-black dark:hover:bg-gray-100 text-white dark:text-gray-900 px-8 h-14 text-base font-medium transition-colors"
+              >
+                Browse Components
+              </Button>
+              <Button
+                size="xl"
+                variant="default"
+                radius="md"
+                className="border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-500 px-8 h-14 text-base font-medium transition-colors"
+              >
+                Custom Components
+              </Button>
+            </Group>
+          </div>
+
+          {/* Right Grid Showcase */}
+          <div className="relative">
+             <GridShowcase />
           </div>
         </div>
       </Container>
     </section>
   );
 }
-

@@ -1,16 +1,11 @@
+import { Companies } from "@/features/companies/components/Companies";
 import { Hero } from "@/features/hero/components/Hero";
-import { Features } from "@/features/features/components/Features";
-import { Stats } from "@/features/stats/components/Stats";
-import { Contact } from "@/features/contact/components/Contact";
 
 export default function Home() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
       <Hero />
-      <Features />
-      <Stats />
-      <Contact />
+      <Companies />
     </main>
   );
 }
-

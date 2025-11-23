@@ -83,7 +83,19 @@ This repository includes an automated PR analysis workflow that runs on every pu
 
 - **CodeQL Security Analysis** - Scans for security vulnerabilities
 - **SonarCloud Code Quality** - Analyzes code quality and maintainability
-- **AI-Powered PR Review** - Provides intelligent code review using OpenAI
+- **AI-Powered PR Review** - Provides intelligent code review using Cursor AI or OpenAI
+
+### Two Workflow Options:
+
+1. **Cursor AI Workflow** (`pr-analysis-cursor.yml`) - **Recommended if you have Cursor Pro**
+   - Uses your existing Cursor subscription
+   - No additional API costs
+   - See [CURSOR_SETUP.md](CURSOR_SETUP.md) for setup
+
+2. **OpenAI Workflow** (`pr-analysis.yml`)
+   - Uses OpenAI API directly
+   - Pay-per-use pricing
+   - See [SETUP_WORKFLOW.md](SETUP_WORKFLOW.md) for setup
 
 See [.github/workflows/README.md](.github/workflows/README.md) for detailed setup instructions.
 

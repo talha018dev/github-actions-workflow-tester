@@ -17,9 +17,17 @@ Add these secrets:
 - **Name**: `SONAR_ORGANIZATION`
   - **Value**: Your SonarCloud organization key (e.g., `your-org-name`)
 
-#### Required for AI Review:
+#### Required for AI Review (Choose One):
+
+**Option A: Use Cursor AI (Recommended if you have Cursor Pro)**
+- **Name**: `CURSOR_API_KEY`
+  - **Value**: Get from Cursor Settings → Account → API Keys
+  - **Note**: Uses your existing Cursor subscription - no additional costs!
+
+**Option B: Use OpenAI Direct**
 - **Name**: `OPENAI_API_KEY`
   - **Value**: Get from [OpenAI Platform → API Keys](https://platform.openai.com/api-keys)
+  - **Note**: Pay-per-use pricing applies
 
 ### Step 2: Set Up SonarCloud (First Time Only)
 

@@ -15,6 +15,7 @@ paths-ignore:
   - "**/*.test.tsx"
   - "**/*.spec.ts"
   - "**/*.spec.tsx"
+  # Note: test-vulnerabilities directory is intentionally included to test CodeQL
 
 queries:
   - uses: security-extended

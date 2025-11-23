@@ -1,53 +1,50 @@
 "use client";
 
-import { Container, Title, Text, Button, Group } from "@mantine/core";
-import { IconRocket } from "@tabler/icons-react";
+import { Button, Container, Title, Text } from "@mantine/core";
+import { useHero } from "../hooks/useHero";
 
 export function Hero() {
+  const { handleGetStarted } = useHero();
+
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-20 md:py-32">
-      <Container size="lg">
-        <div className="text-center space-y-6">
-          <Group justify="center" mb="xl">
-            <IconRocket size={48} className="text-blue-600 dark:text-blue-400" />
-          </Group>
+    <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20 md:py-32">
+      <Container size="xl">
+        <div className="text-center space-y-6 md:space-y-8">
           <Title
             order={1}
-            size="3.5rem"
-            className="font-bold text-gray-900 dark:text-white mb-6"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900"
           >
-            Welcome to Next.js
-            <br />
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              + Mantine + Tailwind
+            Welcome to Our
+            <span className="block text-indigo-600 mt-2">
+              Modern Platform
             </span>
           </Title>
           <Text
-            size="xl"
-            className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8"
+            size="lg"
+            className="text-gray-600 max-w-2xl mx-auto text-base sm:text-lg md:text-xl px-4"
           >
-            A modern, responsive demo application showcasing the power of Next.js 15,
-            Mantine UI components, and Tailwind CSS utilities.
+            Build amazing experiences with Next.js 16, Tailwind CSS v4, and
+            Mantine v8. A fully responsive and modern web application.
           </Text>
-          <Group justify="center" gap="md">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
             <Button
               size="lg"
-              variant="filled"
-              className="bg-blue-600 hover:bg-blue-700"
+              onClick={handleGetStarted}
+              className="w-full sm:w-auto px-8"
             >
               Get Started
             </Button>
             <Button
               size="lg"
               variant="outline"
-              className="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900"
+              className="w-full sm:w-auto px-8"
             >
               Learn More
             </Button>
-          </Group>
+          </div>
         </div>
       </Container>
-    </div>
+    </section>
   );
 }
 

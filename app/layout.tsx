@@ -1,14 +1,11 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { MantineProvider, ColorSchemeScript } from "@mantine/core";
+import { MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
+import type { Metadata } from "next";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
-  title: "Next.js + Mantine + Tailwind Demo",
-  description: "A responsive demo app built with Next.js, Mantine, and Tailwind CSS",
+  title: "Next.js App with Mantine & Tailwind",
+  description: "A modern responsive web application",
 };
 
 export default function RootLayout({
@@ -17,12 +14,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <ColorSchemeScript />
-      </head>
-      <body className={inter.className}>
-        <MantineProvider>
+    <html lang="en" className="light">
+      <body className="bg-white">
+        <MantineProvider defaultColorScheme="light">
           {children}
         </MantineProvider>
       </body>

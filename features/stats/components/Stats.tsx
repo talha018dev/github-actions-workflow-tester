@@ -1,95 +1,51 @@
 "use client";
 
-import { Container, SimpleGrid, Paper, Text, Title } from "@mantine/core";
-import {
-  IconUsers,
-  IconCode,
-  IconRocket,
-  IconHeart,
-} from "@tabler/icons-react";
+import { Container, Title, Text, SimpleGrid } from "@mantine/core";
 
 const stats = [
-  {
-    title: "Active Users",
-    value: "10K+",
-    description: "Users actively using our platform",
-    icon: IconUsers,
-    color: "blue",
-  },
-  {
-    title: "Lines of Code",
-    value: "50K+",
-    description: "Well-structured and maintainable code",
-    icon: IconCode,
-    color: "green",
-  },
-  {
-    title: "Projects",
-    value: "200+",
-    description: "Successfully delivered projects",
-    icon: IconRocket,
-    color: "purple",
-  },
-  {
-    title: "Satisfaction",
-    value: "99%",
-    description: "Client satisfaction rate",
-    icon: IconHeart,
-    color: "pink",
-  },
+  { value: "100%", label: "Type Safe", description: "Full TypeScript support" },
+  { value: "4.0", label: "Tailwind CSS", description: "Latest version" },
+  { value: "16", label: "Next.js", description: "App Router ready" },
+  { value: "8", label: "Mantine", description: "UI Components" },
 ];
 
 export function Stats() {
   return (
-    <div className="bg-white dark:bg-gray-800 py-16 md:py-24">
-      <Container size="lg">
-        <Title order={2} className="text-center mb-12 text-gray-900 dark:text-white">
-          Our Statistics
-        </Title>
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Paper
-                key={stat.title}
-                shadow="sm"
-                p="xl"
-                radius="md"
-                className="text-center hover:shadow-lg transition-shadow duration-300 bg-gray-50 dark:bg-gray-700"
-              >
-                <div className="flex justify-center mb-4">
-                  <div className={`p-3 rounded-full ${
-                    stat.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900' :
-                    stat.color === 'green' ? 'bg-green-100 dark:bg-green-900' :
-                    stat.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900' :
-                    'bg-pink-100 dark:bg-pink-900'
-                  }`}>
-                    <Icon
-                      size={32}
-                      className={
-                        stat.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-                        stat.color === 'green' ? 'text-green-600 dark:text-green-400' :
-                        stat.color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
-                        'text-pink-600 dark:text-pink-400'
-                      }
-                    />
-                  </div>
-                </div>
-                <Title order={3} className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">
-                  {stat.value}
-                </Title>
-                <Text fw={600} className="mb-2 text-gray-700 dark:text-gray-300">
-                  {stat.title}
-                </Text>
-                <Text size="sm" c="dimmed" className="text-gray-600 dark:text-gray-400">
-                  {stat.description}
-                </Text>
-              </Paper>
-            );
-          })}
+    <section className="py-16 md:py-24 bg-indigo-600">
+      <Container size="xl">
+        <div className="text-center mb-12">
+          <Title
+            order={2}
+            className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4"
+          >
+            Built with Modern Tools
+          </Title>
+          <Text size="lg" className="text-indigo-100 max-w-2xl mx-auto">
+            Powered by the latest and greatest technologies
+          </Text>
+        </div>
+
+        <SimpleGrid
+          cols={{ base: 2, sm: 2, md: 4 }}
+          spacing={{ base: "md", md: "lg" }}
+        >
+          {stats.map((stat, index) => (
+            <div
+              key={index}
+              className="text-center p-4 md:p-6 bg-white/10 rounded-lg backdrop-blur-sm"
+            >
+              <div className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-2">
+                {stat.value}
+              </div>
+              <div className="text-lg sm:text-xl font-semibold text-white mb-1">
+                {stat.label}
+              </div>
+              <div className="text-sm text-indigo-100">{stat.description}</div>
+            </div>
+          ))}
         </SimpleGrid>
       </Container>
-    </div>
+    </section>
   );
 }
 

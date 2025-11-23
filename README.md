@@ -1,97 +1,86 @@
-# Next.js + Mantine + Tailwind CSS Demo
+# Next.js 16 with Tailwind CSS v4, Mantine v8, and TypeScript
 
-A modern, responsive demo application built with:
-- **Next.js 15** - React framework with App Router
-- **TypeScript** - Type-safe development
-- **Mantine v7** - Comprehensive React component library
-- **Tailwind CSS** - Utility-first CSS framework
+A modern, responsive web application built with the latest technologies.
+
+## Tech Stack
+
+- **Next.js 16** - React framework with App Router
+- **Tailwind CSS v4** - Utility-first CSS framework
+- **Mantine v8** - React components library
+- **TypeScript** - Type-safe JavaScript
 
 ## Project Structure
 
-This project follows a **feature-based folder structure** for better organization and maintainability:
+This project uses a **feature-based folder structure** for better organization and maintainability:
 
 ```
-├── app/                    # Next.js App Router
+├── app/                    # Next.js app directory
 │   ├── layout.tsx         # Root layout with Mantine provider
 │   ├── page.tsx           # Home page
 │   └── globals.css        # Global styles with Tailwind
 ├── features/              # Feature-based modules
-│   ├── hero/
-│   │   ├── components/    # Hero-specific components
-│   │   ├── hooks/        # Hero-specific hooks
-│   │   └── utils/        # Hero-specific utilities
-│   ├── stats/
-│   │   └── components/    # Statistics components
-│   ├── features/
-│   │   └── components/    # Features showcase components
-│   └── contact/
-│       ├── components/    # Contact form components
-│       └── services/      # Contact API services
+│   ├── hero/             # Hero section feature
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   └── utils/
+│   ├── features/         # Features showcase
+│   │   └── components/
+│   ├── stats/            # Statistics section
+│   │   └── components/
+│   └── contact/          # Contact form
+│       ├── components/
+│       └── services/
 ├── components/            # Shared components (if needed)
-├── hooks/                # Shared hooks (if needed)
-└── utils/                # Shared utilities (if needed)
+└── public/               # Static assets
 ```
 
 ## Getting Started
 
-### Prerequisites
+### Install Dependencies
 
-- Node.js 18+ 
-- npm or yarn
-
-### Installation
-
-1. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Run the development server:
+### Run Development Server
+
 ```bash
 npm run dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
+
+### Build for Production
+
+```bash
+npm run build
+npm start
+```
 
 ## Features
 
-- ✅ **Responsive Design** - Works seamlessly on all devices
-- ✅ **Dark Mode Support** - Automatic dark mode based on system preferences
-- ✅ **TypeScript** - Full type safety
-- ✅ **Feature-Based Architecture** - Easy to find and maintain code
-- ✅ **Modern UI Components** - Powered by Mantine
-- ✅ **Utility-First Styling** - Tailwind CSS for rapid development
+- ✅ Next.js 16 with App Router
+- ✅ Tailwind CSS v4 configuration
+- ✅ Mantine v8 UI components
+- ✅ TypeScript for type safety
+- ✅ Feature-based folder structure
+- ✅ Fully responsive design
+- ✅ Dark mode support (via Mantine)
+- ✅ Modern UI with gradient backgrounds
+- ✅ Contact form with validation
 
-## Available Scripts
+## Responsive Design
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+The application is fully responsive and uses:
+- Mobile-first approach with Tailwind CSS
+- Breakpoints: `sm:`, `md:`, `lg:`, `xl:`
+- Flexible grid layouts with Mantine's `SimpleGrid`
+- Responsive typography and spacing
 
-## Tech Stack
+## Learn More
 
-- **Next.js 15.1.3** - React framework
-- **React 18.3.1** - UI library
-- **TypeScript 5.7.2** - Type safety
-- **Mantine 7.15.0** - Component library
-- **Tailwind CSS 3.4.17** - Styling
-- **Tabler Icons** - Icon library
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Mantine Documentation](https://mantine.dev)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs)
 
-## Project Organization
-
-Each feature module contains:
-- `components/` - React components specific to that feature
-- `hooks/` - Custom React hooks (if needed)
-- `services/` - API calls and business logic (if needed)
-- `utils/` - Utility functions (if needed)
-
-This structure makes it easy to:
-- Find code related to a specific feature
-- Maintain and update features independently
-- Scale the application as it grows
-- Test features in isolation
-
-## License
-
-MIT

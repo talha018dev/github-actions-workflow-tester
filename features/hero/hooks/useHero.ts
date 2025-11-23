@@ -1,11 +1,11 @@
-/**
- * Custom hook for Hero feature
- * This is an example of how to organize hooks by feature
- */
 export function useHero() {
-  // Add any hero-specific logic here
+  const handleGetStarted = () => {
+    console.log("Get Started clicked");
+    // Add navigation or action logic here
+  };
+
   return {
-    // Return any values or functions needed by Hero components
+    handleGetStarted,
   };
 }
 

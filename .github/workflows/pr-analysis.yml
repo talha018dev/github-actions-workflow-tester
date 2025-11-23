@@ -128,7 +128,8 @@ jobs:
                        f.filename.endsWith('.css')))
               .map(f => {
                 const patch = f.patch || '';
-                const truncatedPatch = patch.length > 5000 ? patch.substring(0, 5000) : patch;
+                // Keep more of the patch for better AI analysis
+                const truncatedPatch = patch.length > 10000 ? patch.substring(0, 10000) + '\n... (truncated)' : patch;
                 return {
                   filename: f.filename,
                   status: f.status,
@@ -194,15 +195,21 @@ jobs:
               return;
             }
             
-            const systemPrompt = 'You are an expert code reviewer specializing in Next.js, React, TypeScript, and modern web development. Provide a concise, actionable code review focusing on: 1. Critical Issues: Security vulnerabilities, bugs, or breaking changes 2. Code Quality: Best practices, patterns, and maintainability 3. Suggestions: Specific improvements with code examples when helpful 4. Positive Feedback: Acknowledge good practices and clean code. Format your response in markdown with clear sections. Be constructive and specific.';
+            console.log('Files to review:', prData.files.length);
+            prData.files.forEach(f => {
+              console.log('- ' + f.filename + ' (' + f.status + '): +' + f.additions + '/-' + f.deletions);
+            });
+            
+            const systemPrompt = 'You are an expert code reviewer specializing in Next.js, React, TypeScript, and modern web development. Your task is to identify ALL code quality issues, bugs, and anti-patterns. Be thorough and specific. Focus on: 1. Critical Issues: Security vulnerabilities, bugs, null pointer dereferences, resource leaks, race conditions, breaking changes 2. Code Quality: Type safety violations (any types), React hooks violations, performance issues, memory leaks, poor naming, code duplication, unused code 3. Best Practices: Missing error handling, inefficient algorithms, hardcoded values, mixing concerns, accessibility issues 4. TypeScript/React Specific: Conditional hooks, wrong useEffect dependencies, useCallback/useMemo misuse, type assertions defeating TypeScript. For each issue, provide the file name, line number (if visible), and specific code example. Format your response in markdown with clear sections. Be constructive but thorough - catch everything wrong with the code.';
             
             const fileSummaries = prData.files.map(f => {
               const patch = f.patch || 'No diff available';
-              const truncatedPatch = patch.length > 3000 ? patch.substring(0, 3000) + '...' : patch;
+              // Increase truncation limit to preserve more code context
+              const truncatedPatch = patch.length > 8000 ? patch.substring(0, 8000) + '\n... (truncated)' : patch;
               return '### ' + f.filename + ' (' + f.status + ')\n- Additions: +' + f.additions + ', Deletions: -' + f.deletions + '\n```diff\n' + truncatedPatch + '\n```';
             }).join('\n\n');
             
-            const userPrompt = 'Review this pull request:\n\n**PR Title**: ' + (prData.title || 'N/A') + '\n**PR Description**: ' + (prData.body || 'No description provided') + '\n\n**Changed Files**:\n' + fileSummaries + '\n\nPlease provide a comprehensive code review.';
+            const userPrompt = 'Review this pull request and identify ALL code quality issues, bugs, anti-patterns, and violations of best practices. Be thorough - look for:\n\n- Type safety issues (any types, type assertions)\n- React hooks violations (conditional hooks, wrong dependencies)\n- Performance issues (unnecessary re-renders, inefficient algorithms)\n- Memory leaks (uncleared timers, missing cleanup)\n- Security vulnerabilities\n- Code quality issues (poor naming, duplication, unused code)\n- Missing error handling\n- Accessibility issues\n\n**PR Title**: ' + (prData.title || 'N/A') + '\n**PR Description**: ' + (prData.body || 'No description provided') + '\n\n**Changed Files**:\n' + fileSummaries + '\n\nProvide a comprehensive code review listing ALL issues found. Be specific with file names and code examples.';
             
             const data = JSON.stringify({
               model: 'gpt-4-turbo-preview',
@@ -210,8 +217,8 @@ jobs:
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
               ],
-              temperature: 0.3,
-              max_tokens: 2000,
+              temperature: 0.2,
+              max_tokens: 4000,
             });
             
             return new Promise((resolve) => {
@@ -235,12 +242,16 @@ jobs:
                     if (res.statusCode === 200) {
                       const response = JSON.parse(responseData);
                       const review = response.choices[0].message.content;
+                      console.log('AI Review generated successfully. Length:', review.length);
+                      console.log('Review preview (first 500 chars):', review.substring(0, 500));
                       core.setOutput('review', review);
                     } else {
                       const errorMsg = responseData.length > 500 ? responseData.substring(0, 500) : responseData;
+                      console.error('API Error:', res.statusCode, errorMsg);
                       core.setOutput('review', '⚠️ Error generating AI review (' + res.statusCode + '): ' + errorMsg);
                     }
                   } catch (e) {
+                    console.error('Parse Error:', e.message);
                     core.setOutput('review', '⚠️ Error parsing response: ' + e.message);
                   }
                   resolve();
@@ -272,8 +283,16 @@ jobs:
           script: |
             const review = process.env.REVIEW_TEXT || '';
             
-            if (!review || review.includes('⚠️')) {
-              console.log('Skipping comment due to review error or warning');
+            console.log('Review text length:', review.length);
+            console.log('Review preview:', review.substring(0, 300));
+            
+            if (!review || review.trim() === '') {
+              console.log('Skipping comment: Review is empty');
+              return;
+            }
+            
+            if (review.includes('⚠️') && review.length < 200) {
+              console.log('Skipping comment due to review error:', review);
               return;
             }
             

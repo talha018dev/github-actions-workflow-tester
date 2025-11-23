@@ -77,6 +77,16 @@ The application is fully responsive and uses:
 - Flexible grid layouts with Mantine's `SimpleGrid`
 - Responsive typography and spacing
 
+## GitHub Actions Workflow
+
+This repository includes an automated PR analysis workflow that runs on every pull request:
+
+- **CodeQL Security Analysis** - Scans for security vulnerabilities
+- **SonarCloud Code Quality** - Analyzes code quality and maintainability
+- **AI-Powered PR Review** - Provides intelligent code review using OpenAI
+
+See [.github/workflows/README.md](.github/workflows/README.md) for detailed setup instructions.
+
 ## Learn More
 
 - [Next.js Documentation](https://nextjs.org/docs)

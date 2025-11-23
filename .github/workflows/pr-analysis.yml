@@ -124,22 +124,28 @@ jobs:
               .filter(f => f.status !== 'removed' && 
                       (f.filename.endsWith('.ts') || f.filename.endsWith('.tsx') || 
                        f.filename.endsWith('.js') || f.filename.endsWith('.jsx') ||
-                       f.filename.endsWith('.tsx') || f.filename.endsWith('.css')))
-              .map(f => ({
-                filename: f.filename,
-                status: f.status,
-                additions: f.additions,
-                deletions: f.deletions,
-                patch: f.patch ? f.patch.substring(0, 5000) : ''
-              }));
+                       f.filename.endsWith('.css')))
+              .map(f => {
+                const patch = f.patch || '';
+                const truncatedPatch = patch.length > 5000 ? patch.substring(0, 5000) : patch;
+                return {
+                  filename: f.filename,
+                  status: f.status,
+                  additions: f.additions,
+                  deletions: f.deletions,
+                  patch: truncatedPatch
+                };
+              });
             
-            return JSON.stringify({
-              title: pr.title,
+            const prData = {
+              title: pr.title || '',
               body: pr.body || '',
               files: codeFiles,
               base: pr.base.sha,
               head: pr.head.sha
-            });
+            };
+            
+            core.setOutput('result', JSON.stringify(prData));
 
       - name: Run Cursor AI Review
         id: cursor-review
@@ -147,11 +153,12 @@ jobs:
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          PR_DATA: ${{ steps.pr-changes.outputs.result }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const https = require('https');
-            const prDataStr = '${{ steps.pr-changes.outputs.result }}';
+            const prDataStr = process.env.PR_DATA || '';
             
             if (!prDataStr || prDataStr === '') {
               core.setOutput('review', '⚠️ Failed to get PR data.');
@@ -162,7 +169,7 @@ jobs:
             try {
               prData = JSON.parse(prDataStr);
             } catch (e) {
-              core.setOutput('review', `⚠️ Failed to parse PR data: ${e.message}`);
+              core.setOutput('review', '⚠️ Failed to parse PR data: ' + e.message);
               return;
             }
             
@@ -179,29 +186,15 @@ jobs:
               return;
             }
             
-            const systemPrompt = `You are an expert code reviewer specializing in Next.js, React, TypeScript, and modern web development. Provide a concise, actionable code review focusing on:
-1. **Critical Issues**: Security vulnerabilities, bugs, or breaking changes
-2. **Code Quality**: Best practices, patterns, and maintainability  
-3. **Suggestions**: Specific improvements with code examples when helpful
-4. **Positive Feedback**: Acknowledge good practices and clean code
-
-Format your response in markdown with clear sections. Be constructive and specific.`;
+            const systemPrompt = 'You are an expert code reviewer specializing in Next.js, React, TypeScript, and modern web development. Provide a concise, actionable code review focusing on: 1. Critical Issues: Security vulnerabilities, bugs, or breaking changes 2. Code Quality: Best practices, patterns, and maintainability 3. Suggestions: Specific improvements with code examples when helpful 4. Positive Feedback: Acknowledge good practices and clean code. Format your response in markdown with clear sections. Be constructive and specific.';
             
             const fileSummaries = prData.files.map(f => {
               const patch = f.patch || 'No diff available';
               const truncatedPatch = patch.length > 3000 ? patch.substring(0, 3000) + '...' : patch;
-              return `### ${f.filename} (${f.status})\n- Additions: +${f.additions}, Deletions: -${f.deletions}\n\`\`\`diff\n${truncatedPatch}\n\`\`\``;
+              return '### ' + f.filename + ' (' + f.status + ')\n- Additions: +' + f.additions + ', Deletions: -' + f.deletions + '\n```diff\n' + truncatedPatch + '\n```';
             }).join('\n\n');
             
-            const userPrompt = `Review this pull request:
-
-**PR Title**: ${prData.title || 'N/A'}
-**PR Description**: ${prData.body || 'No description provided'}
-
-**Changed Files**:
-${fileSummaries}
-
-Please provide a comprehensive code review.`;
+            const userPrompt = 'Review this pull request:\n\n**PR Title**: ' + (prData.title || 'N/A') + '\n**PR Description**: ' + (prData.body || 'No description provided') + '\n\n**Changed Files**:\n' + fileSummaries + '\n\nPlease provide a comprehensive code review.';
             
             const data = JSON.stringify({
               model: 'gpt-4-turbo-preview',
@@ -221,7 +214,7 @@ Please provide a comprehensive code review.`;
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${apiKey}`,
+                  'Authorization': 'Bearer ' + apiKey,
                   'Content-Length': data.length,
                 },
               };
@@ -237,17 +230,17 @@ Please provide a comprehensive code review.`;
                       core.setOutput('review', review);
                     } else {
                       const errorMsg = responseData.length > 500 ? responseData.substring(0, 500) : responseData;
-                      core.setOutput('review', `⚠️ Error generating AI review (${res.statusCode}): ${errorMsg}`);
+                      core.setOutput('review', '⚠️ Error generating AI review (' + res.statusCode + '): ' + errorMsg);
                     }
                   } catch (e) {
-                    core.setOutput('review', `⚠️ Error parsing response: ${e.message}`);
+                    core.setOutput('review', '⚠️ Error parsing response: ' + e.message);
                   }
                   resolve();
                 });
               });
               
               req.on('error', (error) => {
-                core.setOutput('review', `⚠️ Error calling API: ${error.message}`);
+                core.setOutput('review', '⚠️ Error calling API: ' + error.message);
                 resolve();
               });
               
@@ -267,14 +260,13 @@ Please provide a comprehensive code review.`;
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const review = `${{ steps.cursor-review.outputs.review }}`;
+            const review = '${{ steps.cursor-review.outputs.review }}';
             
             if (!review || review.includes('⚠️')) {
               console.log('Skipping comment due to review error');
               return;
             }
             
-            // Check if we already posted a review comment
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -286,7 +278,7 @@ Please provide a comprehensive code review.`;
               c.body.includes('🤖 Cursor AI Code Review')
             );
             
-            const commentBody = `## 🤖 Cursor AI Code Review\n\n${review}\n\n---\n*This review was automatically generated using Cursor AI via GitHub Actions.*`;
+            const commentBody = '## 🤖 Cursor AI Code Review\n\n' + review + '\n\n---\n*This review was automatically generated using Cursor AI via GitHub Actions.*';
             
             if (existingComment) {
               await github.rest.issues.updateComment({
@@ -329,20 +321,7 @@ Please provide a comprehensive code review.`;
               return '⏸️';
             };
             
-            const summary = `## 📊 PR Analysis Summary
-            
-            | Analysis | Status |
-            |----------|--------|
-            | Cursor AI Review | ${statusIcon(cursorReviewStatus)} ${cursorReviewStatus} |
-            
-            ### 🔍 Details
-            - **Cursor AI**: Automated code review using Cursor AI completed
-            
-            ${cursorReviewStatus === 'failure' ? '⚠️ **Action Required**: Please review the failed checks above.' : '✅ Review completed!'}
-            
-            ---
-            *This summary is automatically generated by GitHub Actions.*
-            `;
+            const summary = '## 📊 PR Analysis Summary\n\n| Analysis | Status |\n|----------|--------|\n| Cursor AI Review | ' + statusIcon(cursorReviewStatus) + ' ' + cursorReviewStatus + ' |\n\n### 🔍 Details\n- **Cursor AI**: Automated code review using Cursor AI completed\n\n' + (cursorReviewStatus === 'failure' ? '⚠️ **Action Required**: Please review the failed checks above.' : '✅ Review completed!') + '\n\n---\n*This summary is automatically generated by GitHub Actions.*';
             
             // Check if summary comment already exists
             const { data: comments } = await github.rest.issues.listComments({

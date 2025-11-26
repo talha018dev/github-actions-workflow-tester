@@ -20,7 +20,12 @@ jobs:
       
       - name: Install Cursor CLI
         run: |
-          curl https://cursor.com/install -fsS | bash
+          # Download installation script first for security
+          curl -fsSL https://cursor.com/install -o /tmp/cursor-install.sh
+          # Execute the downloaded script
+          bash /tmp/cursor-install.sh
+          # Clean up
+          rm -f /tmp/cursor-install.sh
           echo "$HOME/.cursor/bin" >> $GITHUB_PATH
 
       - name: Perform code review
@@ -58,3 +63,4 @@ jobs:
           - Submit one review containing inline comments plus a concise summary
           - Use only: gh pr review --comment
           - Do not use: gh pr review --approve or --request-changes"
+          

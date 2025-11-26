@@ -8,7 +8,7 @@ jobs:
   code-review:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
 
     steps:
@@ -17,6 +17,12 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ github.token }}
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
       
       - name: Install Cursor CLI
         run: |
@@ -45,22 +51,39 @@ jobs:
           Objectives:
           1) Re-check existing review comments and reply resolved when addressed
           2) Review the current PR diff and flag only clear, high-severity issues
-          3) Leave very short inline comments (1-2 sentences) on changed lines only and a brief summary at the end
+          3) For each issue found, provide a clear solution or fix suggestion
+          4) Automatically fix issues when possible: create commits with fixes and push to the PR branch
+          5) Leave concise inline comments (2-3 sentences) on changed lines only and a brief summary at the end
 
           Procedure:
           - Get existing comments: gh pr view --json comments
           - Get diff: gh pr diff
+          - For each issue identified:
+            * Clearly describe the problem
+            * If the fix is straightforward and safe, automatically apply it:
+              - Edit the file(s) directly to fix the issue
+              - Create a commit with a clear message: "fix: [brief description of fix]"
+              - Push the commit to the PR branch: git push origin HEAD
+            * If automatic fixing is not appropriate, provide a specific solution in comments:
+              - Code example, fix, or best practice recommendation
+              - Include code snippets in markdown code blocks when suggesting fixes
+          - When you create a fix commit, also leave a comment explaining what was fixed
           - If a previously reported issue appears fixed by nearby changes, reply: ✅ This issue appears to be resolved by the recent changes
           - Avoid duplicates: skip if similar feedback already exists on or near the same lines
 
           Commenting rules:
           - Max 10 inline comments total; prioritize the most critical issues
           - One issue per comment; place on the exact changed line
+          - Each comment MUST include: (1) the problem identified, (2) a specific solution or code suggestion
+          - Provide actionable solutions: show code examples, suggest fixes, or recommend best practices
           - Natural tone, specific and actionable; do not mention automated or high-confidence
           - Use emojis: 🚨 Critical 🔒 Security ⚡ Performance ⚠️ Logic ✅ Resolved ✨ Improvement
+          - Format solutions clearly: use code blocks for code suggestions, bullet points for multiple options
 
           Submission:
+          - If you made any fixes: push commits first, then submit review
           - Submit one review containing inline comments plus a concise summary
           - Use only: gh pr review --comment
-          - Do not use: gh pr review --approve or --request-changes"
+          - Do not use: gh pr review --approve or --request-changes
+          - When fixes are applied, mention in the review summary: \"Applied automatic fixes for [X] issues\""
           

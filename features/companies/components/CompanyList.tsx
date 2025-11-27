@@ -305,8 +305,8 @@ export function CompanyList() {
                     const selected = companies.filter((c) =>
                       selectedRows.includes(c.id)
                     );
-                    console.log("Selected companies:", selected);
-                    // Add your action here
+                    // TODO: Implement export functionality
+                    void selected;
                   }}
                 >
                   Export Selected
@@ -316,8 +316,8 @@ export function CompanyList() {
                   color="blue"
                   size="sm"
                   onClick={() => {
-                    console.log("Bulk action on:", selectedRows);
-                    // Add your bulk action here
+                    // TODO: Implement bulk action functionality
+                    void selectedRows;
                   }}
                 >
                   Bulk Action

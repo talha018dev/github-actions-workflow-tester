@@ -17,7 +17,7 @@ import {
   IconBrandFigma,
   IconBrandNotion,
 } from "@tabler/icons-react";
-import { TablerIcon } from "@tabler/icons-react";
+import type { Icon } from "@tabler/icons-react";
 
 export interface Company {
   id: string;
@@ -25,7 +25,7 @@ export interface Company {
   industry: string;
   location: string;
   employees: string;
-  icon?: TablerIcon;
+  icon?: Icon;
   description?: string;
 }
 

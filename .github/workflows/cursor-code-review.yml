@@ -8,7 +8,7 @@ jobs:
   code-review:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
 
     steps:
@@ -17,12 +17,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha }}
-          token: ${{ github.token }}
-      
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
       
       - name: Install Cursor CLI
         run: |
@@ -51,8 +45,8 @@ jobs:
           Objectives:
           1) Re-check existing review comments and reply resolved when addressed
           2) Review the current PR diff and flag only clear, high-severity issues
-          3) For each issue found, provide a clear solution or fix suggestion
-          4) Automatically fix issues when possible: create commits with fixes and push to the PR branch
+          3) For each issue found, provide a clear solution or fix suggestion in comments ONLY
+          4) NEVER automatically apply fixes or create commits - only suggest solutions for the author to review and apply
           5) Leave concise inline comments (2-3 sentences) on changed lines only and a brief summary at the end
 
           Procedure:
@@ -60,14 +54,16 @@ jobs:
           - Get diff: gh pr diff
           - For each issue identified:
             * Clearly describe the problem
-            * If the fix is straightforward and safe, automatically apply it:
-              - Edit the file(s) directly to fix the issue
-              - Create a commit with a clear message: "fix: [brief description of fix]"
-              - Push the commit to the PR branch: git push origin HEAD
-            * If automatic fixing is not appropriate, provide a specific solution in comments:
-              - Code example, fix, or best practice recommendation
-              - Include code snippets in markdown code blocks when suggesting fixes
-          - When you create a fix commit, also leave a comment explaining what was fixed
+            * ALWAYS provide a specific solution suggestion in comments (NEVER apply fixes automatically):
+              - Provide code examples showing the fix
+              - Include complete code snippets in markdown code blocks
+              - Explain the reasoning behind the suggested fix
+              - Make suggestions actionable and easy to apply
+            * Format suggestions clearly:
+              - Show the problematic code (if relevant)
+              - Show the suggested fix in a code block
+              - Explain why the fix is needed
+          - IMPORTANT: DO NOT edit files, create commits, or push changes. Only comment with suggestions.
           - If a previously reported issue appears fixed by nearby changes, reply: ✅ This issue appears to be resolved by the recent changes
           - Avoid duplicates: skip if similar feedback already exists on or near the same lines
 
@@ -81,9 +77,9 @@ jobs:
           - Format solutions clearly: use code blocks for code suggestions, bullet points for multiple options
 
           Submission:
-          - If you made any fixes: push commits first, then submit review
-          - Submit one review containing inline comments plus a concise summary
+          - Submit one review containing inline comments with suggestions plus a concise summary
           - Use only: gh pr review --comment
           - Do not use: gh pr review --approve or --request-changes
-          - When fixes are applied, mention in the review summary: \"Applied automatic fixes for [X] issues\""
+          - Do not create commits or push changes - only provide suggestions in comments
+          - In the summary, mention how many issues were found and that suggestions are provided for review"
           

@@ -111,6 +111,17 @@ export default function VideoCallClient({ roomId }: Props) {
       
       recognitionRef.current = recognition;
     }
+
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {
+          // Ignore if already stopped
+        }
+        recognitionRef.current = null;
+      }
+    };
   }, [uid, agoraRTC]); // Re-init if UID changes
 
   useEffect(() => {

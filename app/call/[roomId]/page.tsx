@@ -4,7 +4,7 @@ import VideoCallClient from "@/app/call/[roomId]/VideoCallClient";
 
 
 type PageProps = {
-    params: { roomId: string };
+    params: Promise<{ roomId: string }>;
 };
 
 export default async function CallPage({ params }: PageProps) {

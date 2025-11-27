@@ -43,13 +43,27 @@ jobs:
           - PR Base SHA: ${{ github.event.pull_request.base.sha }}
 
           Objectives:
-          1) Re-check existing review comments and reply resolved when addressed
-          2) Review the current PR diff and flag only clear, high-severity issues
-          3) For each issue found, provide a clear solution or fix suggestion in comments ONLY
-          4) NEVER automatically apply fixes or create commits - only suggest solutions for the author to review and apply
-          5) Leave concise inline comments (2-3 sentences) on changed lines only and a brief summary at the end
+          1) Add or update PR title and description if missing or incomplete:
+             - Generate a clear, descriptive PR title summarizing the changes
+             - Create a description with bullet points, one per changed file
+             - Each bullet point should briefly describe what changed in that file
+             - Use: gh pr edit --title \"[title]\" --body \"[description]\"
+          2) Re-check existing review comments and reply resolved when addressed
+          3) Review the current PR diff and flag only clear, high-severity issues
+          4) For each issue found, provide a clear solution or fix suggestion in comments ONLY
+          5) NEVER automatically apply fixes or create commits - only suggest solutions for the author to review and apply
+          6) Leave concise inline comments (2-3 sentences) on changed lines only and a brief summary at the end
 
           Procedure:
+          - Get PR details: gh pr view --json title,body,files
+          - Get list of changed files: gh pr diff --name-only
+          - Check if PR title/description needs updating:
+            * If title is missing, generic, or unclear, generate a descriptive title
+            * If description is missing or doesn't have bullet points for each file, create one:
+              - Format: \"## Changes\\n\\n- [file1]: [brief description of changes]\\n- [file2]: [brief description of changes]\\n\"
+              - One bullet point per changed file
+              - Each bullet should summarize the key changes in that file
+            * Update PR: gh pr edit --title \"[generated title]\" --body \"[generated description]\"
           - Get existing comments: gh pr view --json comments
           - Get diff: gh pr diff
           - For each issue identified:

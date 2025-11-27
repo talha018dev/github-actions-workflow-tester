@@ -47,10 +47,10 @@ export default function VideoCallClient({ roomId }: Props) {
   }, []);
 
   function getClient(): IAgoraRTCClient | null {
-    if (!agoraRTC || !clientRef.current) {
-      if (agoraRTC) {
-        clientRef.current = agoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-      }
+    if (!agoraRTC) return null;
+    
+    if (!clientRef.current) {
+      clientRef.current = agoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
     }
     return clientRef.current;
   }
@@ -222,10 +222,16 @@ export default function VideoCallClient({ roomId }: Props) {
     );
   }
 
+  const gridColsClass = {
+    1: 'md:grid-cols-1',
+    2: 'md:grid-cols-2', 
+    3: 'md:grid-cols-3'
+  }[gridCols] || 'md:grid-cols-1';
+
   return (
     <div className="flex flex-col h-[calc(100vh-100px)] bg-gray-900 rounded-xl overflow-hidden relative">
       {/* Main Video Grid */}
-      <div className={`flex-1 p-4 grid gap-4 grid-cols-1 md:grid-cols-${gridCols} auto-rows-fr`}>
+      <div className={`flex-1 p-4 grid gap-4 grid-cols-1 ${gridColsClass} auto-rows-fr`}>
         {/* Local User */}
         <div className="relative bg-gray-800 rounded-xl overflow-hidden aspect-video shadow-lg border border-gray-700">
           <div 

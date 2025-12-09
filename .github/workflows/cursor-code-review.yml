@@ -59,10 +59,12 @@ jobs:
           - Get list of changed files: gh pr diff --name-only
           - Check if PR title/description needs updating:
             * If title is missing, generic, or unclear, generate a descriptive title
-            * If description is missing or doesn't have bullet points for each file, create one:
-              - Format: \"## Changes\\n\\n- [file1]: [brief description of changes]\\n- [file2]: [brief description of changes]\\n\"
-              - One bullet point per changed file
+            * If description is missing or doesn't have the pre-merge checklist, create one with this format:
+              - Format: \"## Pre-Merge Checklist\\n\\n### Security & Permissions\\n- [ ] I have verified that this PR doesn't expose sensitive data\\n- [ ] I have reviewed permissions for new endpoints/features\\n\\n### Code Quality & Testing\\n- [ ] PR title is clear and descriptive\\n- [ ] Unit tests added/updated for new features, and all unit tests pass locally\\n- [ ] Code follows project coding standards\\n- [ ] Linting passes (no ESLint errors)\\n- [ ] Ensure npm run build is successful\\n\\n---\\n\\n## Changes\\n\\n- [file1]: [brief description of changes]\\n- [file2]: [brief description of changes]\\n\"
+              - ALWAYS include the Pre-Merge Checklist section at the top with unchecked boxes [ ]
+              - One bullet point per changed file in the Changes section
               - Each bullet should summarize the key changes in that file
+            * If the description already has a Pre-Merge Checklist, preserve the checkbox states (checked or unchecked) when updating
             * Update PR: gh pr edit --title \"[generated title]\" --body \"[generated description]\"
           - Get existing comments: gh pr view --json comments
           - Get diff: gh pr diff

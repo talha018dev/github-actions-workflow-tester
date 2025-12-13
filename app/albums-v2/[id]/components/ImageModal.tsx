@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect } from "react";
 
 interface ImageData {
   id: string;
@@ -13,6 +14,8 @@ interface ImageData {
 
 interface ImageModalProps {
   image: ImageData;
+  images: ImageData[];
+  currentIndex: number;
   onClose: () => void;
   onNext: () => void;
   onPrevious: () => void;
@@ -23,6 +26,8 @@ interface ImageModalProps {
 
 export function ImageModal({
   image,
+  images,
+  currentIndex,
   onClose,
   onNext,
   onPrevious,
@@ -30,6 +35,42 @@ export function ImageModal({
   hasPrevious,
   isPending,
 }: ImageModalProps) {
+  // Preload adjacent images for faster navigation
+  useEffect(() => {
+    const preloadImages = [];
+    
+    // Preload next image
+    if (currentIndex < images.length - 1) {
+      const nextImage = images[currentIndex + 1];
+      const nextImg = new window.Image();
+      nextImg.src = nextImage.download_url;
+      preloadImages.push(nextImg);
+    }
+    
+    // Preload previous image
+    if (currentIndex > 0) {
+      const prevImage = images[currentIndex - 1];
+      const prevImg = new window.Image();
+      prevImg.src = prevImage.download_url;
+      preloadImages.push(prevImg);
+    }
+    
+    // Preload second next/previous for even smoother navigation
+    if (currentIndex < images.length - 2) {
+      const nextNextImage = images[currentIndex + 2];
+      const nextNextImg = new window.Image();
+      nextNextImg.src = nextNextImage.download_url;
+      preloadImages.push(nextNextImg);
+    }
+    
+    if (currentIndex > 1) {
+      const prevPrevImage = images[currentIndex - 2];
+      const prevPrevImg = new window.Image();
+      prevPrevImg.src = prevPrevImage.download_url;
+      preloadImages.push(prevPrevImg);
+    }
+  }, [currentIndex, images]);
+
   const handleNext = () => {
     onNext();
   };
@@ -102,6 +143,8 @@ export function ImageModal({
                 height={image.height}
                 className="max-w-full max-h-[70vh] w-auto h-auto object-contain"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1024px"
+                priority
+                quality={90}
               />
             </div>
             {isPending && (

@@ -164,6 +164,8 @@ export function ImageGrid({ images }: ImageGridProps) {
       {selectedImage && (
         <ImageModal
           image={selectedImage}
+          images={images}
+          currentIndex={getCurrentImageIndex()}
           onClose={handleCloseModal}
           onNext={handleNextImage}
           onPrevious={handlePreviousImage}

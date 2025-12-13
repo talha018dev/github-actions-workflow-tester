@@ -25,7 +25,7 @@ export default function RootLayout({
             <MantineThemeSync />
             <Navbar />
             {children}
-            <FloatingChat />
+            {/* <FloatingChat /> */}
           </MantineProvider>
         </ThemeProvider>
       </body>

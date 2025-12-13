@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Card, Image, Pagination, SimpleGrid, Text } from "@mantine/core";
+import { useEffect, useState } from "react";
 import { ImageModal } from "./ImageModal";
-import { Pagination, SimpleGrid, Card, Image, Text } from "@mantine/core";
 
 interface ImageData {
   id: string;
@@ -22,6 +22,12 @@ const ITEMS_PER_PAGE = 20;
 export function ImageGrid({ images }: ImageGridProps) {
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset pagination and selected image when images change
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedImage(null);
+  }, [images]);
 
   const totalPages = Math.ceil(images.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;

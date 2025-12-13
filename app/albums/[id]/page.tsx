@@ -1,6 +1,8 @@
 import { AlbumsSidebar } from "../components/AlbumsSidebar";
 import { ImageGrid } from "./components/ImageGrid";
 
+export const dynamic = 'force-dynamic';
+
 async function getAlbums() {
   try {
     const res = await fetch("https://jsonplaceholder.typicode.com/albums", {
@@ -18,8 +20,10 @@ async function getAlbums() {
 
 async function getImages(id: string, limit: number = 30) {
   try {
+    // Use album ID to calculate page offset so different albums show different images
+    const page = Math.floor(Number(id) / 10) + 1;
     const res = await fetch(
-      `https://picsum.photos/v2/list?id=${id}&limit=${limit}`,
+      `https://picsum.photos/v2/list?page=${page}&limit=${limit}`,
       {
         cache: "no-store",
       }
@@ -61,7 +65,7 @@ export default async function AlbumDetailPage({
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               {images.length} images
             </p>
-            <ImageGrid images={images} />
+            <ImageGrid key={id} images={images} />
           </div>
         </div>
       </div>

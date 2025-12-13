@@ -1,8 +1,6 @@
-"use client";
-
-import { usePathname, useRouter } from "next/navigation";
-import { Button, ScrollArea, Stack, Text } from "@mantine/core";
+import { ScrollArea, Stack, Text } from "@mantine/core";
 import { IconPhoto } from "@tabler/icons-react";
+import Link from "next/link";
 
 interface Album {
   id: number;
@@ -12,12 +10,10 @@ interface Album {
 
 interface AlbumsSidebarProps {
   albums: Album[];
+  currentAlbumId?: string;
 }
 
-export function AlbumsSidebar({ albums }: AlbumsSidebarProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const currentAlbumId = pathname?.split("/")[2];
+export function AlbumsSidebar({ albums, currentAlbumId }: AlbumsSidebarProps) {
 
   return (
     <div className="w-80 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
@@ -32,10 +28,10 @@ export function AlbumsSidebar({ albums }: AlbumsSidebarProps) {
       <ScrollArea style={{ height: "calc(100vh - 8rem)" }}>
         <Stack gap="xs" p="md">
           {albums.map((album) => (
-            <button
+            <Link
               key={album.id}
-              onClick={() => router.push(`/albums/${album.id}`)}
-              className={`w-full text-left p-3 rounded-md transition-all ${
+              href={`/albums/${album.id}`}
+              className={`w-full text-left p-3 rounded-md transition-all block ${
                 currentAlbumId === String(album.id)
                   ? "bg-blue-600 dark:bg-blue-600 text-white"
                   : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
@@ -62,7 +58,7 @@ export function AlbumsSidebar({ albums }: AlbumsSidebarProps) {
                   </div>
                 </div>
               </div>
-            </button>
+            </Link>
           ))}
         </Stack>
       </ScrollArea>

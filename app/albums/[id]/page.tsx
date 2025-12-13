@@ -52,7 +52,7 @@ export default async function AlbumDetailPage({
   return (
     <main className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
       <div className="flex h-[calc(100vh-4rem)]">
-        <AlbumsSidebar albums={albums} />
+        <AlbumsSidebar albums={albums} currentAlbumId={id} />
         <div className="flex-1 overflow-auto">
           <div className="p-6">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">

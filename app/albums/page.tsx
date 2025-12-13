@@ -21,7 +21,7 @@ export default async function AlbumsPage() {
   return (
     <main className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
       <div className="flex h-[calc(100vh-4rem)]">
-        <AlbumsSidebar albums={albums} />
+        <AlbumsSidebar albums={albums} currentAlbumId={undefined} />
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">

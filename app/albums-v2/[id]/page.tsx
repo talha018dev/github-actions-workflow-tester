@@ -18,14 +18,16 @@ async function getAlbums() {
   }
 }
 
-async function getImages(id: string, limit: number = 200) {
+async function getImages(id: string, page: number = 1, limit: number = 20) {
   try {
-    // Use album ID to calculate page number, cycling through pages 1-20 for variety
+    // Use album ID to calculate base page number, cycling through pages 1-20 for variety
     // This ensures different albums get different images
     const albumIdNum = Number(id);
-    const page = ((albumIdNum - 1) % 20) + 1;
-    const url = `https://picsum.photos/v2/list?page=${page}&limit=${limit}`;
-    console.log(`📸 Album ${id} → Fetching from page ${page}: ${url}`);
+    const basePage = ((albumIdNum - 1) % 20) + 1;
+    // Calculate the actual page to fetch (basePage + offset based on requested page)
+    const actualPage = basePage + Math.floor((page - 1) * limit / 30);
+    const url = `https://picsum.photos/v2/list?page=${actualPage}&limit=${limit}`;
+    console.log(`📸 Album ${id} → Fetching page ${page} (API page ${actualPage}): ${url}`);
     
     const res = await fetch(url, {
       cache: "no-store", // Don't cache to ensure fresh data for each album
@@ -56,7 +58,7 @@ export default async function AlbumV2DetailPage({
   const { id } = await params;
   const [albums, images] = await Promise.all([
     getAlbums(),
-    getImages(id, 200),
+    getImages(id, 1, 20), // Load only first 20 images initially
   ]);
   console.log(`🚀 Album ${id} - Received ${images.length} images, first image ID: ${images[0]?.id || 'none'}`)
 
@@ -72,9 +74,9 @@ export default async function AlbumV2DetailPage({
               {currentAlbum?.title || `Album ${id}`}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              {images.length} images
+              {images.length}+ images
             </p>
-            <ImageGrid key={id} images={images} />
+            <ImageGrid key={id} albumId={id} initialImages={images} />
           </div>
         </div>
       </div>

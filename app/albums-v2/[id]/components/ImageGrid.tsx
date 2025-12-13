@@ -43,11 +43,6 @@ export function ImageGrid({ albumId, initialImages }: ImageGridProps) {
     
     setIsLoadingMore(true);
     try {
-      // Calculate which API page to fetch
-      const albumIdNum = Number(albumId);
-      const basePage = ((albumIdNum - 1) % 20) + 1;
-      const actualPage = basePage + Math.floor((page - 1) * IMAGES_PER_FETCH / 30);
-      
       const res = await fetch(
         `/api/images?albumId=${albumId}&page=${page}&limit=${IMAGES_PER_FETCH}`
       );
@@ -56,12 +51,24 @@ export function ImageGrid({ albumId, initialImages }: ImageGridProps) {
         throw new Error('Failed to fetch images');
       }
       
-      const newImages = await res.json();
+      const response = await res.json();
+      
+      // Handle both old format (array) and new format (object with images array)
+      const newImages = Array.isArray(response) ? response : response.images;
+      const responseHasMore = response.hasMore !== undefined ? response.hasMore : newImages.length === IMAGES_PER_FETCH;
       
       if (newImages.length === 0) {
+        // No images returned - we've reached the end
         setHasMore(false);
+        console.log('📄 Reached end of pagination - no more images available');
       } else {
         setImages((prev) => [...prev, ...newImages]);
+        
+        // Update hasMore based on API response
+        if (!responseHasMore) {
+          setHasMore(false);
+          console.log(`📄 Reached end of pagination - received ${newImages.length} images (less than requested ${IMAGES_PER_FETCH})`);
+        }
       }
     } catch (error) {
       console.error('Error fetching more images:', error);
@@ -213,6 +220,12 @@ export function ImageGrid({ albumId, initialImages }: ImageGridProps) {
             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 dark:border-gray-400"></div>
               <span>Loading more images...</span>
+            </div>
+          )}
+          
+          {!hasMore && currentPage === totalPages && (
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              You've reached the end of available images
             </div>
           )}
         </div>

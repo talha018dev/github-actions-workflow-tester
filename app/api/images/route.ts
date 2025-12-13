@@ -30,7 +30,15 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+    
+    // Check if we've reached the end (fewer images than requested means no more pages)
+    const hasMore = data.length === limit;
+    
+    return NextResponse.json({
+      images: data,
+      hasMore,
+      count: data.length,
+    });
   } catch (error) {
     console.error(`Error fetching images for album ${albumId}:`, error);
     return NextResponse.json({ error: 'Failed to fetch images' }, { status: 500 });

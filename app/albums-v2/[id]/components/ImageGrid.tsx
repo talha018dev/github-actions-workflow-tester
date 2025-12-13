@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useEffect, useState, useTransition } from "react";
 import { ImageModal } from "./ImageModal";
 
 interface ImageData {
@@ -21,6 +22,7 @@ const ITEMS_PER_PAGE = 20;
 export function ImageGrid({ images }: ImageGridProps) {
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isPending, startTransition] = useTransition();
 
   // Reset pagination and selected image when images change
   useEffect(() => {
@@ -49,14 +51,18 @@ export function ImageGrid({ images }: ImageGridProps) {
   const handleNextImage = () => {
     const currentIndex = getCurrentImageIndex();
     if (currentIndex < images.length - 1) {
-      setSelectedImage(images[currentIndex + 1]);
+      startTransition(() => {
+        setSelectedImage(images[currentIndex + 1]);
+      });
     }
   };
 
   const handlePreviousImage = () => {
     const currentIndex = getCurrentImageIndex();
     if (currentIndex > 0) {
-      setSelectedImage(images[currentIndex - 1]);
+      startTransition(() => {
+        setSelectedImage(images[currentIndex - 1]);
+      });
     }
   };
 
@@ -84,10 +90,12 @@ export function ImageGrid({ images }: ImageGridProps) {
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300"
             onClick={() => handleImageClick(image)}
           >
-            <div className="aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
-              <img
+            <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
+              <Image
                 src={`https://picsum.photos/id/${image.id}/300/300`}
                 alt={image.author}
+                width={300}
+                height={300}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -161,6 +169,7 @@ export function ImageGrid({ images }: ImageGridProps) {
           onPrevious={handlePreviousImage}
           hasNext={getCurrentImageIndex() < images.length - 1}
           hasPrevious={getCurrentImageIndex() > 0}
+          isPending={isPending}
         />
       )}
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import Image from "next/image";
 
 interface ImageData {
   id: string;
@@ -18,6 +18,7 @@ interface ImageModalProps {
   onPrevious: () => void;
   hasNext: boolean;
   hasPrevious: boolean;
+  isPending: boolean;
 }
 
 export function ImageModal({
@@ -27,19 +28,14 @@ export function ImageModal({
   onPrevious,
   hasNext,
   hasPrevious,
+  isPending,
 }: ImageModalProps) {
-  const [isPending, startTransition] = useTransition();
-
   const handleNext = () => {
-    startTransition(() => {
-      onNext();
-    });
+    onNext();
   };
 
   const handlePrevious = () => {
-    startTransition(() => {
-      onPrevious();
-    });
+    onPrevious();
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -90,15 +86,30 @@ export function ImageModal({
 
         {/* Image Container */}
         <div className="relative bg-gray-100 dark:bg-gray-800 flex items-center justify-center min-h-[400px] max-h-[70vh] p-4">
-          <img
-            src={image.download_url}
-            alt={image.author}
-            className="max-w-full max-h-full object-contain"
-            style={{
-              opacity: isPending ? 0.5 : 1,
-              transition: "opacity 0.2s",
-            }}
-          />
+          <div className="relative w-full h-full flex items-center justify-center">
+            <div 
+              className="relative transition-opacity duration-200"
+              style={{ 
+                opacity: isPending ? 0.4 : 1,
+                maxWidth: '100%',
+                maxHeight: '70vh',
+              }}
+            >
+              <Image
+                src={image.download_url}
+                alt={image.author}
+                width={image.width}
+                height={image.height}
+                className="max-w-full max-h-[70vh] w-auto h-auto object-contain"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1024px"
+              />
+            </div>
+            {isPending && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 dark:border-gray-400"></div>
+              </div>
+            )}
+          </div>
 
           {/* Previous Button */}
           {hasPrevious && (

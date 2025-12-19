@@ -222,21 +222,54 @@ export function SpeedDatingRoomComponent({
       // Join with token if available, otherwise try without (for App ID only mode)
       await client.join(APP_ID, room.channelName, token, uid);
       
-      const [micTrack, camTrack] = await agoraRTC.createMicrophoneAndCameraTracks();
-      setLocalAudioTrack(micTrack);
-      setLocalVideoTrack(camTrack);
+      // Try to get media tracks - handle missing devices gracefully
+      let micTrack = null;
+      let camTrack = null;
+      const tracksToPublish = [];
       
-      await client.publish([micTrack, camTrack]);
-      setJoined(true);
-      
-      if (recognitionRef.current) {
-        recognitionRef.current.start();
+      // Try to get microphone
+      try {
+        micTrack = await agoraRTC.createMicrophoneAudioTrack();
+        setLocalAudioTrack(micTrack);
+        tracksToPublish.push(micTrack);
+      } catch (micError: any) {
+        console.warn("Could not access microphone:", micError.message);
+        setIsMicMuted(true);
       }
       
-      setTimeout(() => {
-        const container = document.getElementById("local-video");
-        if (container) camTrack.play(container);
-      }, 100);
+      // Try to get camera
+      try {
+        camTrack = await agoraRTC.createCameraVideoTrack();
+        setLocalVideoTrack(camTrack);
+        tracksToPublish.push(camTrack);
+      } catch (camError: any) {
+        console.warn("Could not access camera:", camError.message);
+        setIsCamOff(true);
+      }
+      
+      // Publish available tracks
+      if (tracksToPublish.length > 0) {
+        await client.publish(tracksToPublish);
+      }
+      
+      setJoined(true);
+      
+      // Start speech recognition if mic is available
+      if (micTrack && recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+        } catch (e) {
+          console.warn("Could not start speech recognition:", e);
+        }
+      }
+      
+      // Play local video if camera is available
+      if (camTrack) {
+        setTimeout(() => {
+          const container = document.getElementById("local-video");
+          if (container) camTrack.play(container);
+        }, 100);
+      }
     } catch (error) {
       console.error("Failed to join:", error);
     }

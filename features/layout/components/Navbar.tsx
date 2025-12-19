@@ -5,10 +5,10 @@ import { Burger, Container, Group, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconSearch } from "@tabler/icons-react";
 
-const links = [
+const links: { link: string; label: string; highlight?: boolean }[] = [
+  { link: "/dating", label: "Speed Dating", highlight: true },
   { link: "/components", label: "Components" },
   { link: "/templates", label: "Templates" },
-  { link: "/pricing", label: "Pricing" },
   { link: "/showcase", label: "Showcase" },
 ];
 
@@ -32,7 +32,11 @@ export function Navbar() {
                 <a
                   key={link.label}
                   href={link.link}
-                  className="block px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className={`block px-3 py-2 text-sm font-medium transition-colors ${
+                    link.highlight 
+                      ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:from-rose-400 hover:to-pink-400' 
+                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  }`}
                 >
                   {link.label}
                 </a>

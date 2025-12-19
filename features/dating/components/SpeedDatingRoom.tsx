@@ -1,0 +1,501 @@
+"use client";
+
+import {
+  IconHeart,
+  IconHeartOff,
+  IconMicrophone,
+  IconMicrophoneOff,
+  IconPhoneOff,
+  IconScript,
+  IconTimer,
+  IconUser,
+  IconVideo,
+  IconVideoOff,
+  IconX,
+  IconSparkles,
+} from "@tabler/icons-react";
+import { useEffect, useRef, useState } from "react";
+import type { SpeedDatingRoom as SpeedDatingRoomType, UserProfile } from "../types";
+
+const APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID || "";
+
+type AgoraRTC = any;
+type IAgoraRTCClient = any;
+type IAgoraRTCRemoteUser = any;
+type ICameraVideoTrack = any;
+type IMicrophoneAudioTrack = any;
+
+interface TranscriptItem {
+  speaker: string;
+  text: string;
+  timestamp: number;
+}
+
+interface SpeedDatingRoomProps {
+  room: SpeedDatingRoomType;
+  currentUser: UserProfile;
+  partner: UserProfile | null;
+  timeRemaining: number;
+  roundNumber: number;
+  onLike: () => void;
+  onPass: () => void;
+  onLeave: () => void;
+}
+
+export function SpeedDatingRoomComponent({
+  room,
+  currentUser,
+  partner,
+  timeRemaining,
+  roundNumber,
+  onLike,
+  onPass,
+  onLeave,
+}: SpeedDatingRoomProps) {
+  const [agoraRTC, setAgoraRTC] = useState<AgoraRTC | null>(null);
+  const clientRef = useRef<IAgoraRTCClient | null>(null);
+  const [joined, setJoined] = useState(false);
+  
+  const [localVideoTrack, setLocalVideoTrack] = useState<ICameraVideoTrack | null>(null);
+  const [localAudioTrack, setLocalAudioTrack] = useState<IMicrophoneAudioTrack | null>(null);
+  const [remoteUser, setRemoteUser] = useState<IAgoraRTCRemoteUser | null>(null);
+  
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isCamOff, setIsCamOff] = useState(false);
+  
+  const [transcript, setTranscript] = useState<TranscriptItem[]>([]);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
+  
+  const recognitionRef = useRef<any>(null);
+  
+  // Format time as MM:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+  
+  // Determine urgency based on time remaining
+  const getTimeColor = () => {
+    if (timeRemaining <= 30) return 'text-red-400 animate-pulse';
+    if (timeRemaining <= 60) return 'text-amber-400';
+    return 'text-emerald-400';
+  };
+  
+  // Load Agora SDK
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      import("agora-rtc-sdk-ng").then((module) => {
+        setAgoraRTC(module.default);
+      });
+    }
+  }, []);
+  
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window.webkitSpeechRecognition || window.SpeechRecognition)) {
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+      
+      recognition.onresult = (event: any) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        
+        if (finalTranscript) {
+          setTranscript(prev => [...prev, {
+            speaker: 'You',
+            text: finalTranscript.trim(),
+            timestamp: Date.now(),
+          }]);
+        }
+      };
+      
+      recognitionRef.current = recognition;
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          // Ignore
+        }
+      }
+    };
+  }, []);
+  
+  // Get or create Agora client
+  function getClient(): IAgoraRTCClient | null {
+    if (!agoraRTC) return null;
+    if (!clientRef.current) {
+      clientRef.current = agoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+    }
+    return clientRef.current;
+  }
+  
+  // Set up Agora event listeners
+  useEffect(() => {
+    if (!agoraRTC) return;
+    
+    const client = getClient();
+    if (!client) return;
+    
+    const handleUserPublished = async (user: IAgoraRTCRemoteUser, mediaType: "video" | "audio") => {
+      await client.subscribe(user, mediaType);
+      setRemoteUser(user);
+      
+      if (mediaType === "video") {
+        setTimeout(() => {
+          const container = document.getElementById("partner-video");
+          if (container) user.videoTrack?.play(container);
+        }, 100);
+      }
+      if (mediaType === "audio") user.audioTrack?.play();
+    };
+    
+    const handleUserUnpublished = () => {
+      setRemoteUser(null);
+    };
+    
+    client.on("user-published", handleUserPublished);
+    client.on("user-unpublished", handleUserUnpublished);
+    client.on("user-left", handleUserUnpublished);
+    
+    return () => {
+      client.off("user-published", handleUserPublished);
+      client.off("user-unpublished", handleUserUnpublished);
+      client.off("user-left", handleUserUnpublished);
+    };
+  }, [agoraRTC]);
+  
+  // Auto-join when room is available
+  useEffect(() => {
+    if (agoraRTC && room && !joined) {
+      handleJoin();
+    }
+    
+    return () => {
+      if (joined) {
+        handleLeave();
+      }
+    };
+  }, [agoraRTC, room?.channelName]);
+  
+  async function handleJoin() {
+    if (!agoraRTC || !APP_ID || joined) return;
+    
+    const client = getClient();
+    if (!client) return;
+    
+    try {
+      await client.join(APP_ID, room.channelName, null, currentUser.id);
+      
+      const [micTrack, camTrack] = await agoraRTC.createMicrophoneAndCameraTracks();
+      setLocalAudioTrack(micTrack);
+      setLocalVideoTrack(camTrack);
+      
+      await client.publish([micTrack, camTrack]);
+      setJoined(true);
+      
+      if (recognitionRef.current) {
+        recognitionRef.current.start();
+      }
+      
+      setTimeout(() => {
+        const container = document.getElementById("local-video");
+        if (container) camTrack.play(container);
+      }, 100);
+    } catch (error) {
+      console.error("Failed to join:", error);
+    }
+  }
+  
+  async function handleLeave() {
+    const client = getClient();
+    if (!client) return;
+    
+    try {
+      localAudioTrack?.stop();
+      localAudioTrack?.close();
+      localVideoTrack?.stop();
+      localVideoTrack?.close();
+      
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      
+      await client.leave();
+      
+      setLocalAudioTrack(null);
+      setLocalVideoTrack(null);
+      setRemoteUser(null);
+      setJoined(false);
+    } catch (error) {
+      console.error("Failed to leave:", error);
+    }
+  }
+  
+  async function toggleMic() {
+    if (!localAudioTrack) return;
+    if (isMicMuted) {
+      await localAudioTrack.setEnabled(true);
+      setIsMicMuted(false);
+      recognitionRef.current?.start();
+    } else {
+      await localAudioTrack.setEnabled(false);
+      setIsMicMuted(true);
+      recognitionRef.current?.stop();
+    }
+  }
+  
+  async function toggleCamera() {
+    if (!localVideoTrack) return;
+    if (isCamOff) {
+      await localVideoTrack.setEnabled(true);
+      setIsCamOff(false);
+      setTimeout(() => localVideoTrack.play("local-video"), 100);
+    } else {
+      await localVideoTrack.setEnabled(false);
+      setIsCamOff(true);
+    }
+  }
+  
+  const handleLike = () => {
+    setHasRated(true);
+    onLike();
+  };
+  
+  const handlePass = () => {
+    setHasRated(true);
+    onPass();
+  };
+  
+  return (
+    <div className="flex flex-col h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-rose-950/20">
+      {/* Header with timer and round info */}
+      <div className="flex items-center justify-between px-6 py-4 bg-gray-900/80 border-b border-gray-800">
+        <div className="flex items-center gap-4">
+          <span className="text-gray-400 text-sm">Round {roundNumber}</span>
+          {partner && (
+            <div className="flex items-center gap-2">
+              <img 
+                src={partner.avatar} 
+                alt={partner.name}
+                className="w-8 h-8 rounded-full border-2 border-rose-500"
+              />
+              <span className="text-white font-medium">{partner.name}, {partner.age}</span>
+            </div>
+          )}
+        </div>
+        
+        <div className={`flex items-center gap-2 ${getTimeColor()} font-mono text-2xl font-bold`}>
+          <IconTimer size={24} />
+          {formatTime(timeRemaining)}
+        </div>
+        
+        <button
+          onClick={() => setShowTranscript(!showTranscript)}
+          className={`p-2 rounded-lg transition-colors ${showTranscript ? 'bg-purple-600' : 'bg-gray-800 hover:bg-gray-700'} text-white`}
+        >
+          <IconScript size={20} />
+        </button>
+      </div>
+      
+      {/* Main content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Video area */}
+        <div className="flex-1 flex flex-col p-4 gap-4">
+          {/* Video grid */}
+          <div className="flex-1 grid grid-cols-2 gap-4">
+            {/* Partner video */}
+            <div className="relative bg-gray-900 rounded-2xl overflow-hidden border border-gray-800">
+              <div id="partner-video" className="w-full h-full object-cover" />
+              
+              {!remoteUser && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center mb-3">
+                    {partner ? (
+                      <img 
+                        src={partner.avatar} 
+                        alt={partner.name}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <IconUser size={48} className="text-white" />
+                    )}
+                  </div>
+                  <p className="text-gray-400">Waiting for {partner?.name || 'partner'}...</p>
+                </div>
+              )}
+              
+              {/* Partner info overlay */}
+              <div className="absolute bottom-4 left-4 right-4">
+                <div className="bg-black/60 backdrop-blur-sm rounded-xl p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-white font-semibold">
+                        {partner?.name || 'Your Match'}
+                      </h3>
+                      {partner && (
+                        <p className="text-gray-300 text-sm">
+                          {partner.occupation} • {partner.location}
+                        </p>
+                      )}
+                    </div>
+                    {partner && (
+                      <div className="flex flex-wrap gap-1">
+                        {partner.interests.slice(0, 3).map(interest => (
+                          <span 
+                            key={interest}
+                            className="px-2 py-0.5 bg-rose-500/30 text-rose-300 rounded-full text-xs"
+                          >
+                            {interest}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Local video */}
+            <div className="relative bg-gray-900 rounded-2xl overflow-hidden border border-gray-800">
+              <div id="local-video" className="w-full h-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+              
+              {isCamOff && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                    <img 
+                      src={currentUser.avatar} 
+                      alt="You"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white text-sm">
+                You {isMicMuted && '(Muted)'}
+              </div>
+            </div>
+          </div>
+          
+          {/* Controls */}
+          <div className="flex items-center justify-center gap-4 py-4">
+            <button
+              onClick={toggleMic}
+              className={`p-4 rounded-full transition-all ${isMicMuted ? 'bg-red-600 hover:bg-red-500' : 'bg-gray-700 hover:bg-gray-600'} text-white`}
+            >
+              {isMicMuted ? <IconMicrophoneOff size={24} /> : <IconMicrophone size={24} />}
+            </button>
+            
+            <button
+              onClick={toggleCamera}
+              className={`p-4 rounded-full transition-all ${isCamOff ? 'bg-red-600 hover:bg-red-500' : 'bg-gray-700 hover:bg-gray-600'} text-white`}
+            >
+              {isCamOff ? <IconVideoOff size={24} /> : <IconVideo size={24} />}
+            </button>
+            
+            <div className="w-px h-10 bg-gray-700" />
+            
+            {/* Like/Pass buttons */}
+            {!hasRated ? (
+              <>
+                <button
+                  onClick={handlePass}
+                  className="p-4 rounded-full bg-gray-700 hover:bg-gray-600 text-white transition-all"
+                  title="Pass"
+                >
+                  <IconHeartOff size={24} />
+                </button>
+                
+                <button
+                  onClick={handleLike}
+                  className="p-4 rounded-full bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white transition-all shadow-lg shadow-rose-500/25"
+                  title="Like"
+                >
+                  <IconHeart size={24} className="fill-current" />
+                </button>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-full">
+                <IconSparkles size={18} />
+                <span className="text-sm font-medium">Rated!</span>
+              </div>
+            )}
+            
+            <div className="w-px h-10 bg-gray-700" />
+            
+            <button
+              onClick={() => {
+                handleLeave();
+                onLeave();
+              }}
+              className="p-4 rounded-full bg-red-600 hover:bg-red-500 text-white transition-all"
+            >
+              <IconPhoneOff size={24} />
+            </button>
+          </div>
+        </div>
+        
+        {/* Transcript sidebar */}
+        {showTranscript && (
+          <div className="w-80 bg-gray-900 border-l border-gray-800 flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <h3 className="text-white font-semibold flex items-center gap-2">
+                <IconScript size={18} />
+                Live Transcript
+              </h3>
+              <button 
+                onClick={() => setShowTranscript(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <IconX size={18} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {transcript.length === 0 ? (
+                <p className="text-gray-500 text-center text-sm mt-8">
+                  Start talking to see the transcript...
+                </p>
+              ) : (
+                transcript.map((item, idx) => (
+                  <div key={idx} className="bg-gray-800 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-xs font-bold ${item.speaker === 'You' ? 'text-purple-400' : 'text-rose-400'}`}>
+                        {item.speaker}
+                      </span>
+                      <span className="text-gray-500 text-xs">
+                        {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-gray-300 text-sm">{item.text}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Add global type declarations
+declare global {
+  interface Window {
+    webkitSpeechRecognition: any;
+    SpeechRecognition: any;
+  }
+}
+

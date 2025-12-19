@@ -4,74 +4,16 @@ import { EventLobby } from "@/features/dating/components/EventLobby";
 import { MatchResults } from "@/features/dating/components/MatchResults";
 import { SpeedDatingRoomComponent } from "@/features/dating/components/SpeedDatingRoom";
 import { WaitingRoom } from "@/features/dating/components/WaitingRoom";
+import { CURRENT_TEST_USER, DEMO_USERS } from "@/features/dating/data/demoUsers";
 import { useSpeedDating } from "@/features/dating/hooks/useSpeedDating";
 import type { Match, SpeedDatingRoom, UserProfile } from "@/features/dating/types";
 import { IconLoader2 } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
-// Demo user - in production this would come from auth
-const DEMO_USER: UserProfile = {
-  id: "current-user",
-  name: "Alex",
-  age: 28,
-  gender: "female",
-  lookingFor: ["male", "female", "non-binary"],
-  bio: "Looking for meaningful connections!",
-  avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=currentuser",
-  interests: ["Travel", "Music", "Photography", "Cooking"],
-  location: "New York, NY",
-  occupation: "Software Engineer",
-  education: "MIT",
-  traits: {
-    adventurous: 8,
-    intellectual: 7,
-    social: 6,
-    romantic: 8,
-    ambitious: 9,
-    creative: 7,
-    spontaneous: 6,
-    traditional: 4,
-  },
-  preferences: {
-    ageMin: 24,
-    ageMax: 38,
-    maxDistance: 50,
-  },
-};
-
-// Demo participants for the lobby
-const DEMO_PARTICIPANTS: UserProfile[] = [
-  DEMO_USER,
-  ...Array.from({ length: 11 }, (_, i) => ({
-    id: `user-${i + 1}`,
-    name: ["Jordan", "Taylor", "Morgan", "Casey", "Riley", "Quinn", "Drew", "Avery", "Jamie", "Cameron", "Sam"][i],
-    age: 25 + Math.floor(Math.random() * 10),
-    gender: ["male", "female", "non-binary"][Math.floor(Math.random() * 3)] as "male" | "female" | "non-binary",
-    lookingFor: ["male", "female", "non-binary"] as ("male" | "female" | "non-binary")[],
-    bio: "Excited to meet new people!",
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=user${i}`,
-    interests: ["Travel", "Music", "Cooking", "Fitness", "Art", "Movies", "Reading", "Gaming"].sort(() => Math.random() - 0.5).slice(0, 4),
-    location: "New York, NY",
-    occupation: "Professional",
-    education: "University Graduate",
-    traits: {
-      adventurous: Math.floor(Math.random() * 10) + 1,
-      intellectual: Math.floor(Math.random() * 10) + 1,
-      social: Math.floor(Math.random() * 10) + 1,
-      romantic: Math.floor(Math.random() * 10) + 1,
-      ambitious: Math.floor(Math.random() * 10) + 1,
-      creative: Math.floor(Math.random() * 10) + 1,
-      spontaneous: Math.floor(Math.random() * 10) + 1,
-      traditional: Math.floor(Math.random() * 10) + 1,
-    },
-    preferences: {
-      ageMin: 21,
-      ageMax: 45,
-      maxDistance: 50,
-    },
-  })),
-];
+// Use demo users for testing
+const DEMO_USER = CURRENT_TEST_USER;
+const DEMO_PARTICIPANTS: UserProfile[] = [CURRENT_TEST_USER, ...DEMO_USERS];
 
 export default function EventPage() {
   const params = useParams();

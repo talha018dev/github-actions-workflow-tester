@@ -1,7 +1,8 @@
 "use client";
 
 import { EventCard } from "@/features/dating/components/EventCard";
-import type { SpeedDatingEvent, UserProfile } from "@/features/dating/types";
+import { CURRENT_TEST_USER } from "@/features/dating/data/demoUsers";
+import type { SpeedDatingEvent } from "@/features/dating/types";
 import { 
   IconCalendarEvent, 
   IconHeart, 
@@ -10,39 +11,13 @@ import {
   IconFlame,
   IconUsers,
   IconVideo,
+  IconRocket,
 } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-// Demo user - in production this would come from auth
-const DEMO_USER: UserProfile = {
-  id: "current-user",
-  name: "You",
-  age: 28,
-  gender: "female",
-  lookingFor: ["male", "female", "non-binary"],
-  bio: "Looking for meaningful connections!",
-  avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=currentuser",
-  interests: ["Travel", "Music", "Photography", "Cooking"],
-  location: "New York, NY",
-  occupation: "Software Engineer",
-  education: "MIT",
-  traits: {
-    adventurous: 8,
-    intellectual: 7,
-    social: 6,
-    romantic: 8,
-    ambitious: 9,
-    creative: 7,
-    spontaneous: 6,
-    traditional: 4,
-  },
-  preferences: {
-    ageMin: 24,
-    ageMax: 38,
-    maxDistance: 50,
-  },
-};
+// Use the demo user for testing
+const DEMO_USER = CURRENT_TEST_USER;
 
 export default function DatingPage() {
   const [events, setEvents] = useState<SpeedDatingEvent[]>([]);
@@ -185,10 +160,19 @@ export default function DatingPage() {
             <p className="text-gray-400 mt-1">Join an event and start meeting new people</p>
           </div>
           
-          <button className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl flex items-center gap-2 transition-colors">
-            <IconUserPlus size={20} />
-            Create Event
-          </button>
+          <div className="flex gap-3">
+            <a 
+              href="/dating/demo"
+              className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white font-medium rounded-xl flex items-center gap-2 transition-colors"
+            >
+              <IconRocket size={20} />
+              Try Demo
+            </a>
+            <button className="px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-xl flex items-center gap-2 transition-colors">
+              <IconUserPlus size={20} />
+              Create Event
+            </button>
+          </div>
         </div>
         
         {loading ? (

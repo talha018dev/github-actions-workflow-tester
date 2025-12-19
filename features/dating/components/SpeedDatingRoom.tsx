@@ -31,12 +31,21 @@ interface TranscriptItem {
   timestamp: number;
 }
 
+interface PreviousMatch {
+  oderId: string;
+  partnerName: string;
+  partnerAvatar: string;
+  roundNumber: number;
+}
+
 interface SpeedDatingRoomProps {
   room: SpeedDatingRoomType;
   currentUser: UserProfile;
   partner: UserProfile | null;
   timeRemaining: number;
   roundNumber: number;
+  totalRounds: number;
+  previousMatches?: PreviousMatch[];
   onLike: () => void;
   onPass: () => void;
   onLeave: () => void;
@@ -48,6 +57,8 @@ export function SpeedDatingRoomComponent({
   partner,
   timeRemaining,
   roundNumber,
+  totalRounds,
+  previousMatches = [],
   onLike,
   onPass,
   onLeave,
@@ -423,33 +434,65 @@ export function SpeedDatingRoomComponent({
   
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-rose-950/20">
-      {/* Header with timer and round info */}
-      <div className="flex items-center justify-between px-6 py-4 bg-gray-900/80 border-b border-gray-800">
-        <div className="flex items-center gap-4">
-          <span className="text-gray-400 text-sm">Round {roundNumber}</span>
-          {partner && (
-            <div className="flex items-center gap-2">
-              <img 
-                src={partner.avatar} 
-                alt={partner.name}
-                className="w-8 h-8 rounded-full border-2 border-rose-500"
-              />
-              <span className="text-white font-medium">{partner.name}, {partner.age}</span>
+      {/* Header with timer, round info, and previous matches */}
+      <div className="bg-gray-900/80 border-b border-gray-800">
+        {/* Previous matches row */}
+        {previousMatches.length > 0 && (
+          <div className="px-6 py-2 border-b border-gray-800/50 bg-gray-900/50">
+            <div className="flex items-center gap-3">
+              <span className="text-gray-500 text-xs uppercase tracking-wider">Connected with:</span>
+              <div className="flex items-center gap-2">
+                {previousMatches.map((match, idx) => (
+                  <div 
+                    key={idx}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-gray-800 rounded-full"
+                    title={`Round ${match.roundNumber}: ${match.partnerName}`}
+                  >
+                    <img 
+                      src={match.partnerAvatar} 
+                      alt={match.partnerName}
+                      className="w-5 h-5 rounded-full border border-gray-600"
+                    />
+                    <span className="text-gray-300 text-xs">{match.partnerName.split(' ')[0]}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         
-        <div className={`flex items-center gap-2 ${getTimeColor()} font-mono text-2xl font-bold`}>
-          <IconClock size={24} />
-          {formatTime(timeRemaining)}
+        {/* Main header row */}
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-rose-400 font-semibold">Round {roundNumber}</span>
+              <span className="text-gray-500 text-sm">of {totalRounds}</span>
+            </div>
+            {partner && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-rose-500/10 border border-rose-500/30 rounded-full">
+                <img 
+                  src={partner.avatar} 
+                  alt={partner.name}
+                  className="w-7 h-7 rounded-full border-2 border-rose-500"
+                />
+                <span className="text-white font-medium">{partner.name}, {partner.age}</span>
+                <IconHeart size={14} className="text-rose-400" />
+              </div>
+            )}
+          </div>
+          
+          <div className={`flex items-center gap-2 ${getTimeColor()} font-mono text-2xl font-bold`}>
+            <IconClock size={24} />
+            {formatTime(timeRemaining)}
+          </div>
+          
+          <button
+            onClick={() => setShowTranscript(!showTranscript)}
+            className={`p-2 rounded-lg transition-colors ${showTranscript ? 'bg-purple-600' : 'bg-gray-800 hover:bg-gray-700'} text-white`}
+          >
+            <IconScript size={20} />
+          </button>
         </div>
-        
-        <button
-          onClick={() => setShowTranscript(!showTranscript)}
-          className={`p-2 rounded-lg transition-colors ${showTranscript ? 'bg-purple-600' : 'bg-gray-800 hover:bg-gray-700'} text-white`}
-        >
-          <IconScript size={20} />
-        </button>
       </div>
       
       {/* Main content */}
@@ -526,14 +569,27 @@ export function SpeedDatingRoomComponent({
                 </div>
               )}
               
-              <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white text-sm flex items-center gap-2">
-                You {isMicMuted && '(Muted)'}
-                {isListening && (
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-xs text-red-400">REC</span>
-                  </span>
-                )}
+              <div className="absolute bottom-4 left-4 right-4">
+                <div className="bg-black/60 backdrop-blur-sm px-3 py-2 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <img 
+                        src={currentUser.avatar} 
+                        alt={currentUser.name}
+                        className="w-6 h-6 rounded-full border border-purple-500"
+                      />
+                      <span className="text-white text-sm font-medium">{currentUser.name}</span>
+                      <span className="text-purple-400 text-xs">(You)</span>
+                      {isMicMuted && <span className="text-red-400 text-xs">Muted</span>}
+                    </div>
+                    {isListening && (
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        <span className="text-xs text-red-400">REC</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -1,10 +1,10 @@
 "use client";
 
-import { 
-  IconCheck, 
-  IconHeart, 
-  IconMessage, 
-  IconSparkles, 
+import {
+  IconCheck,
+  IconHeart,
+  IconMessage,
+  IconSparkles,
   IconTrophy,
   IconX,
 } from "@tabler/icons-react";
@@ -30,6 +30,11 @@ export function MatchResults({
 }: MatchResultsProps) {
   const [actionedMatches, setActionedMatches] = useState<Set<string>>(new Set());
   
+  // Filter matches to only show ones involving the current user
+  const myMatches = matches.filter(m => 
+    m.user1Id === currentUserId || m.user2Id === currentUserId
+  );
+  
   // Get partner from match
   const getPartner = (match: Match) => {
     const partnerId = match.user1Id === currentUserId ? match.user2Id : match.user1Id;
@@ -51,9 +56,9 @@ export function MatchResults({
     onReject(matchId);
   };
   
-  // Separate mutual matches from pending
-  const mutualMatches = matches.filter(m => m.status === 'mutual');
-  const pendingMatches = matches.filter(m => m.status === 'pending');
+  // Separate mutual matches from pending (using filtered myMatches)
+  const mutualMatches = myMatches.filter(m => m.status === 'mutual');
+  const pendingMatches = myMatches.filter(m => m.status === 'pending');
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-rose-950/20 p-8">
@@ -74,7 +79,7 @@ export function MatchResults({
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-10">
           <div className="bg-gray-900/60 backdrop-blur border border-gray-800 rounded-2xl p-6 text-center">
-            <div className="text-3xl font-bold text-white mb-1">{matches.length}</div>
+            <div className="text-3xl font-bold text-white mb-1">{myMatches.length}</div>
             <div className="text-gray-400 text-sm">Dates</div>
           </div>
           <div className="bg-gray-900/60 backdrop-blur border border-rose-500/30 rounded-2xl p-6 text-center">

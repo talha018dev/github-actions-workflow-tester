@@ -53,13 +53,36 @@ export default function EventPage() {
   }, [userIdParam]);
   
   const [matches, setMatches] = useState<Match[]>([]);
+  console.log('🚀 - EventPage - matches:', matches)
   const [currentPartner, setCurrentPartner] = useState<UserProfile | null>(null);
+  const [previousMatches, setPreviousMatches] = useState<{
+    oderId: string;
+    partnerName: string;
+    partnerAvatar: string;
+    roundNumber: number;
+  }[]>([]);
   
   const handleRoomChange = useCallback((room: SpeedDatingRoom | null) => {
     if (room && room.participants) {
       const partnerId = room.participants.find(id => id !== currentUser.id);
       const partner = partnerId ? ALL_DEMO_USERS.find(p => p.id === partnerId) : null;
       setCurrentPartner(partner || null);
+      
+      // Add to previous matches if this is a new partner
+      if (partner && room.roundNumber) {
+        setPreviousMatches(prev => {
+          const alreadyMatched = prev.some(m => m.oderId === partnerId);
+          if (!alreadyMatched) {
+            return [...prev, {
+              oderId: partnerId,
+              partnerName: partner.name,
+              partnerAvatar: partner.avatar,
+              roundNumber: room.roundNumber,
+            }];
+          }
+          return prev;
+        });
+      }
     } else {
       setCurrentPartner(null);
     }
@@ -226,6 +249,10 @@ export default function EventPage() {
     case 'in-call':
     case 'matched':
       if (currentRoom) {
+        // Calculate total rounds based on participant count
+        const totalParticipants = event.currentParticipants.length;
+        const totalRounds = Math.max(Math.ceil(Math.log2(totalParticipants)) + 1, 3);
+        
         return (
           <SpeedDatingRoomComponent
             room={currentRoom}
@@ -233,6 +260,8 @@ export default function EventPage() {
             partner={currentPartner}
             timeRemaining={timeRemaining}
             roundNumber={roundNumber}
+            totalRounds={totalRounds}
+            previousMatches={previousMatches}
             onLike={handleLike}
             onPass={handlePass}
             onLeave={handleLeaveEvent}

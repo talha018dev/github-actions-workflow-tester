@@ -194,13 +194,14 @@ export function EventLobby({
         
         {/* Action buttons */}
         <div className="flex items-center justify-center gap-4">
-          {isHost && event.status === 'upcoming' && (
+          {/* Allow anyone to start for testing - in production, check isHost */}
+          {event.status === 'upcoming' && (
             <button
               onClick={onStart}
               className="px-8 py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-semibold rounded-xl flex items-center gap-2 shadow-lg shadow-rose-500/25 transition-all"
             >
               <IconPlayerPlay size={20} />
-              Start Event
+              Start Event {!isHost && '(Anyone can start for testing)'}
             </button>
           )}
           

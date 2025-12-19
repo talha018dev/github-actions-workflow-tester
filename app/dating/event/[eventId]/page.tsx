@@ -8,30 +8,62 @@ import { CURRENT_TEST_USER, DEMO_USERS } from "@/features/dating/data/demoUsers"
 import { useSpeedDating } from "@/features/dating/hooks/useSpeedDating";
 import type { Match, SpeedDatingRoom, UserProfile } from "@/features/dating/types";
 import { IconLoader2 } from "@tabler/icons-react";
-import { useParams, useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 
-// Use demo users for testing
-const DEMO_USER = CURRENT_TEST_USER;
-const DEMO_PARTICIPANTS: UserProfile[] = [CURRENT_TEST_USER, ...DEMO_USERS];
+// All available demo users
+const ALL_DEMO_USERS: UserProfile[] = [CURRENT_TEST_USER, ...DEMO_USERS];
 
 export default function EventPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const eventId = params.eventId as string;
+  const userIdParam = searchParams.get('userId');
+  
+  // Get current user from URL param, session storage, or default
+  const [currentUser, setCurrentUser] = useState<UserProfile>(CURRENT_TEST_USER);
+  
+  useEffect(() => {
+    // Try to get user from URL param first
+    if (userIdParam) {
+      const user = ALL_DEMO_USERS.find(u => u.id === userIdParam);
+      if (user) {
+        setCurrentUser(user);
+        return;
+      }
+    }
+    
+    // Try session storage
+    if (typeof window !== 'undefined') {
+      const storedProfile = sessionStorage.getItem('datingUserProfile');
+      if (storedProfile) {
+        try {
+          const user = JSON.parse(storedProfile) as UserProfile;
+          setCurrentUser(user);
+          return;
+        } catch (e) {
+          console.warn('Failed to parse stored profile:', e);
+        }
+      }
+    }
+    
+    // Default to test user
+    setCurrentUser(CURRENT_TEST_USER);
+  }, [userIdParam]);
   
   const [matches, setMatches] = useState<Match[]>([]);
   const [currentPartner, setCurrentPartner] = useState<UserProfile | null>(null);
   
   const handleRoomChange = useCallback((room: SpeedDatingRoom | null) => {
     if (room && room.participants) {
-      const partnerId = room.participants.find(id => id !== DEMO_USER.id);
-      const partner = partnerId ? DEMO_PARTICIPANTS.find(p => p.id === partnerId) : null;
+      const partnerId = room.participants.find(id => id !== currentUser.id);
+      const partner = partnerId ? ALL_DEMO_USERS.find(p => p.id === partnerId) : null;
       setCurrentPartner(partner || null);
     } else {
       setCurrentPartner(null);
     }
-  }, []);
+  }, [currentUser.id]);
   
   const handleEventEnd = useCallback(() => {
     // Fetch final matches
@@ -52,7 +84,7 @@ export default function EventPage() {
     formatTimeRemaining,
   } = useSpeedDating({
     eventId,
-    userId: DEMO_USER.id,
+    userId: currentUser.id,
     onRoomChange: handleRoomChange,
     onEventEnd: handleEventEnd,
   });
@@ -134,7 +166,7 @@ export default function EventPage() {
   };
   
   const getUserProfile = (userId: string): UserProfile | null => {
-    return DEMO_PARTICIPANTS.find(p => p.id === userId) || null;
+    return ALL_DEMO_USERS.find(p => p.id === userId) || null;
   };
   
   // Loading state
@@ -172,11 +204,11 @@ export default function EventPage() {
       return (
         <EventLobby
           event={event}
-          currentUser={DEMO_USER}
-          participants={DEMO_PARTICIPANTS}
+          currentUser={currentUser}
+          participants={ALL_DEMO_USERS}
           onStart={handleStartEvent}
           onLeave={handleLeaveEvent}
-          isHost={event.hostId === DEMO_USER.id}
+          isHost={event.hostId === currentUser.id}
         />
       );
     
@@ -197,7 +229,7 @@ export default function EventPage() {
         return (
           <SpeedDatingRoomComponent
             room={currentRoom}
-            currentUser={DEMO_USER}
+            currentUser={currentUser}
             partner={currentPartner}
             timeRemaining={timeRemaining}
             roundNumber={roundNumber}
@@ -222,7 +254,7 @@ export default function EventPage() {
       return (
         <MatchResults
           matches={matches}
-          currentUserId={DEMO_USER.id}
+          currentUserId={currentUser.id}
           getUserProfile={getUserProfile}
           onAccept={handleAcceptMatch}
           onReject={handleRejectMatch}
@@ -234,11 +266,11 @@ export default function EventPage() {
       return (
         <EventLobby
           event={event}
-          currentUser={DEMO_USER}
-          participants={DEMO_PARTICIPANTS}
+          currentUser={currentUser}
+          participants={ALL_DEMO_USERS}
           onStart={handleStartEvent}
           onLeave={handleLeaveEvent}
-          isHost={event.hostId === DEMO_USER.id}
+          isHost={event.hostId === currentUser.id}
         />
       );
   }

@@ -218,16 +218,23 @@ export function SpeedDatingRoomComponent({
     if (!client) return;
     
     const handleUserPublished = async (user: IAgoraRTCRemoteUser, mediaType: "video" | "audio") => {
+      console.log(`[Agora] Remote user ${user.uid} published ${mediaType}`);
       await client.subscribe(user, mediaType);
       setRemoteUser(user);
       
       if (mediaType === "video") {
         setTimeout(() => {
           const container = document.getElementById("partner-video");
-          if (container) user.videoTrack?.play(container);
+          if (container) {
+            user.videoTrack?.play(container);
+            console.log(`[Agora] Playing remote video`);
+          }
         }, 100);
       }
-      if (mediaType === "audio") user.audioTrack?.play();
+      if (mediaType === "audio") {
+        user.audioTrack?.play();
+        console.log(`[Agora] Playing remote audio`);
+      }
     };
     
     const handleUserUnpublished = () => {
@@ -247,6 +254,10 @@ export function SpeedDatingRoomComponent({
   
   // Auto-join when room is available
   useEffect(() => {
+    console.log(`[Room] Room data:`, room);
+    console.log(`[Room] Current user:`, currentUser.id);
+    console.log(`[Room] Channel:`, room?.channelName);
+    
     if (agoraRTC && room && !joined) {
       handleJoin();
     }
@@ -289,7 +300,11 @@ export function SpeedDatingRoomComponent({
       }
       
       // Join with token if available, otherwise try without (for App ID only mode)
+      console.log(`[Agora] Joining channel: ${room.channelName}`);
+      console.log(`[Agora] Using UID: ${uid}, Token: ${token ? 'yes' : 'no'}`);
+      
       await client.join(APP_ID, room.channelName, token, uid);
+      console.log(`[Agora] Successfully joined channel!`);
       
       // Try to get media tracks - handle missing devices gracefully
       let micTrack = null;
@@ -319,9 +334,11 @@ export function SpeedDatingRoomComponent({
       // Publish available tracks
       if (tracksToPublish.length > 0) {
         await client.publish(tracksToPublish);
+        console.log(`[Agora] Published ${tracksToPublish.length} tracks`);
       }
       
       setJoined(true);
+      console.log(`[Agora] Ready! Waiting for other participant...`);
       
       // Start speech recognition if mic is available
       if (micTrack && recognitionRef.current) {

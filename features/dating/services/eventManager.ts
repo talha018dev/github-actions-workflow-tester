@@ -16,9 +16,24 @@ import {
   calculateRequiredRounds,
 } from './matchmaking';
 
-// In-memory store (replace with database in production)
-const events: Map<string, EventState> = new Map();
-const userProfiles: Map<string, UserProfile> = new Map();
+// Use global to persist state across hot reloads in development
+// In production, this should be replaced with a database
+declare global {
+  // eslint-disable-next-line no-var
+  var _datingEvents: Map<string, EventState> | undefined;
+  // eslint-disable-next-line no-var
+  var _datingUserProfiles: Map<string, UserProfile> | undefined;
+}
+
+// Initialize or reuse global stores
+const events: Map<string, EventState> = global._datingEvents || new Map();
+const userProfiles: Map<string, UserProfile> = global._datingUserProfiles || new Map();
+
+// Persist to global in development
+if (process.env.NODE_ENV !== 'production') {
+  global._datingEvents = events;
+  global._datingUserProfiles = userProfiles;
+}
 
 /**
  * Create a new speed dating event
@@ -173,6 +188,10 @@ export async function startNextRound(eventId: string): Promise<EventRound | null
     ? participants 
     : event.currentParticipants.map(id => createDemoProfile(id));
   
+  console.log(`[startNextRound] Round ${eventState.currentRound}`);
+  console.log(`[startNextRound] Event participants:`, event.currentParticipants);
+  console.log(`[startNextRound] Available participants:`, availableParticipants.map(p => p.id));
+  
   // Create optimal pairings
   const { pairs, waitlist } = createOptimalPairings(
     availableParticipants,
@@ -203,6 +222,9 @@ export async function startNextRound(eventId: string): Promise<EventRound | null
   eventState.rounds.push(round);
   eventState.activeRooms = rooms;
   eventState.waitingRoom = waitlist.map(p => p.id);
+  
+  console.log(`[startNextRound] Created ${rooms.length} rooms:`, rooms.map(r => ({ id: r.id, participants: r.participants })));
+  console.log(`[startNextRound] Waiting room:`, eventState.waitingRoom);
   
   // Schedule next round
   setTimeout(() => {
@@ -292,9 +314,16 @@ export function getUserRoom(eventId: string, userId: string): SpeedDatingRoom | 
   const eventState = events.get(eventId);
   if (!eventState) return null;
   
-  return eventState.activeRooms.find(room => 
+  console.log(`[getUserRoom] Looking for user ${userId} in ${eventState.activeRooms.length} rooms`);
+  console.log(`[getUserRoom] Active rooms:`, eventState.activeRooms.map(r => ({ id: r.id, participants: r.participants })));
+  
+  const room = eventState.activeRooms.find(room => 
     room.participants.includes(userId)
-  ) || null;
+  );
+  
+  console.log(`[getUserRoom] Found room:`, room?.id || 'none');
+  
+  return room || null;
 }
 
 /**

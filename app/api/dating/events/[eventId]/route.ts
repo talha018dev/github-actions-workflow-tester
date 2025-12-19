@@ -46,7 +46,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isInRoom: !!userRoom,
       room: userRoom ? {
         id: userRoom.id,
+        eventId: userRoom.eventId,
         channelName: userRoom.channelName,
+        participants: userRoom.participants, // Include full participants array
         partnerId: userRoom.participants.find(id => id !== userId),
         roundNumber: userRoom.roundNumber,
         startTime: userRoom.startTime,

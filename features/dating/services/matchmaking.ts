@@ -283,9 +283,11 @@ export function generateAIMatchSuggestions(
     // Get all rooms this user participated in
     eventState.rounds.forEach(round => {
       round.rooms
-        .filter(room => room.participants.includes(userId))
+        .filter(room => room.participants && room.participants.includes(userId))
         .forEach(room => {
-          const partnerId = room.participants.find(id => id !== userId)!;
+          const partnerId = room.participants.find(id => id !== userId);
+          if (!partnerId) return;
+          
           const cacheKey = [userId, partnerId].sort().join('-');
           const compatibility = eventState.compatibilityScores.get(cacheKey);
           

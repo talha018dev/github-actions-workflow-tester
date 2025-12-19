@@ -1,18 +1,18 @@
 "use client";
 
 import {
+  IconClock,
   IconHeart,
   IconHeartOff,
   IconMicrophone,
   IconMicrophoneOff,
   IconPhoneOff,
   IconScript,
-  IconTimer,
+  IconSparkles,
   IconUser,
   IconVideo,
   IconVideoOff,
   IconX,
-  IconSparkles,
 } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import type { SpeedDatingRoom as SpeedDatingRoomType, UserProfile } from "../types";
@@ -297,7 +297,7 @@ export function SpeedDatingRoomComponent({
         </div>
         
         <div className={`flex items-center gap-2 ${getTimeColor()} font-mono text-2xl font-bold`}>
-          <IconTimer size={24} />
+          <IconClock size={24} />
           {formatTime(timeRemaining)}
         </div>
         

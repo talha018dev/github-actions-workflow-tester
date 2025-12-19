@@ -24,9 +24,9 @@ export default function EventPage() {
   const [currentPartner, setCurrentPartner] = useState<UserProfile | null>(null);
   
   const handleRoomChange = useCallback((room: SpeedDatingRoom | null) => {
-    if (room) {
+    if (room && room.participants) {
       const partnerId = room.participants.find(id => id !== DEMO_USER.id);
-      const partner = DEMO_PARTICIPANTS.find(p => p.id === partnerId);
+      const partner = partnerId ? DEMO_PARTICIPANTS.find(p => p.id === partnerId) : null;
       setCurrentPartner(partner || null);
     } else {
       setCurrentPartner(null);

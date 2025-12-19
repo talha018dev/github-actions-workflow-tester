@@ -69,7 +69,7 @@ export default function EventPage() {
       setCurrentPartner(partner || null);
       
       // Add to previous matches if this is a new partner
-      if (partner && room.roundNumber) {
+      if (partner && partnerId && room.roundNumber) {
         setPreviousMatches(prev => {
           const alreadyMatched = prev.some(m => m.oderId === partnerId);
           if (!alreadyMatched) {

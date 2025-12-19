@@ -67,7 +67,12 @@ export function SpeedDatingRoomComponent({
   const [showTranscript, setShowTranscript] = useState(false);
   const [hasRated, setHasRated] = useState(false);
   
+  // Live speech recognition state
   const recognitionRef = useRef<any>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [interimText, setInterimText] = useState('');
+  const [showCaptions, setShowCaptions] = useState(true);
+  const [speechSupported, setSpeechSupported] = useState(true);
   
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
@@ -92,34 +97,97 @@ export function SpeedDatingRoomComponent({
     }
   }, []);
   
-  // Initialize speech recognition
+  // Initialize speech recognition (Web Speech API - works in Chrome/Safari)
   useEffect(() => {
-    if (typeof window !== "undefined" && (window.webkitSpeechRecognition || window.SpeechRecognition)) {
-      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-      
-      recognition.onresult = (event: any) => {
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          }
-        }
-        
-        if (finalTranscript) {
-          setTranscript(prev => [...prev, {
-            speaker: 'You',
-            text: finalTranscript.trim(),
-            timestamp: Date.now(),
-          }]);
-        }
-      };
-      
-      recognitionRef.current = recognition;
+    if (typeof window === "undefined") return;
+    
+    // Check for browser support
+    const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      console.warn('Speech recognition not supported in this browser');
+      setSpeechSupported(false);
+      return;
     }
+    
+    const recognition = new SpeechRecognition();
+    
+    // Configuration for best results
+    recognition.continuous = true;        // Keep listening
+    recognition.interimResults = true;    // Show real-time results
+    recognition.lang = 'en-US';           // Language
+    recognition.maxAlternatives = 1;      // Just take the best result
+    
+    // Handle speech results
+    recognition.onresult = (event: any) => {
+      let interim = '';
+      let final = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          final += transcript;
+        } else {
+          interim += transcript;
+        }
+      }
+      
+      // Update interim text for live display
+      setInterimText(interim);
+      
+      // Add final transcript to history
+      if (final) {
+        setTranscript(prev => [...prev, {
+          speaker: 'You',
+          text: final.trim(),
+          timestamp: Date.now(),
+        }]);
+        setInterimText(''); // Clear interim when we have final
+      }
+    };
+    
+    // Handle listening state
+    recognition.onstart = () => {
+      setIsListening(true);
+      console.log('Speech recognition started');
+    };
+    
+    recognition.onend = () => {
+      setIsListening(false);
+      console.log('Speech recognition ended');
+      
+      // Auto-restart if we're still in the call and not muted
+      if (joined && !isMicMuted && recognitionRef.current) {
+        try {
+          recognition.start();
+        } catch (e) {
+          console.warn('Could not restart recognition:', e);
+        }
+      }
+    };
+    
+    recognition.onerror = (event: any) => {
+      console.warn('Speech recognition error:', event.error);
+      setIsListening(false);
+      
+      // Handle specific errors
+      if (event.error === 'not-allowed') {
+        setSpeechSupported(false);
+      } else if (event.error === 'no-speech') {
+        // This is normal, just try to restart
+        if (joined && !isMicMuted) {
+          setTimeout(() => {
+            try {
+              recognition.start();
+            } catch (e) {
+              // Ignore
+            }
+          }, 100);
+        }
+      }
+    };
+    
+    recognitionRef.current = recognition;
     
     return () => {
       if (recognitionRef.current) {
@@ -128,9 +196,10 @@ export function SpeedDatingRoomComponent({
         } catch {
           // Ignore
         }
+        recognitionRef.current = null;
       }
     };
-  }, []);
+  }, [joined, isMicMuted]);
   
   // Get or create Agora client
   function getClient(): IAgoraRTCClient | null {
@@ -440,11 +509,71 @@ export function SpeedDatingRoomComponent({
                 </div>
               )}
               
-              <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white text-sm">
+              <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-lg text-white text-sm flex items-center gap-2">
                 You {isMicMuted && '(Muted)'}
+                {isListening && (
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-xs text-red-400">REC</span>
+                  </span>
+                )}
               </div>
             </div>
           </div>
+          
+          {/* Live Captions Overlay */}
+          {showCaptions && (interimText || transcript.length > 0) && (
+            <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl p-4 border border-gray-800">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <IconMicrophone size={16} className={isListening ? 'text-red-400' : 'text-gray-500'} />
+                  <span className="text-gray-400 text-xs font-medium uppercase tracking-wider">
+                    Live Captions
+                  </span>
+                  {isListening && (
+                    <span className="flex items-center gap-1 text-emerald-400 text-xs">
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                      Listening
+                    </span>
+                  )}
+                </div>
+                <button 
+                  onClick={() => setShowCaptions(false)}
+                  className="text-gray-500 hover:text-white text-xs"
+                >
+                  Hide
+                </button>
+              </div>
+              
+              {/* Current speech (interim) */}
+              {interimText && (
+                <div className="text-white text-lg font-medium animate-pulse">
+                  {interimText}
+                  <span className="inline-block w-0.5 h-5 bg-white ml-1 animate-blink" />
+                </div>
+              )}
+              
+              {/* Last few transcripts */}
+              {!interimText && transcript.length > 0 && (
+                <div className="space-y-1">
+                  {transcript.slice(-3).map((item, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`text-sm ${idx === transcript.slice(-3).length - 1 ? 'text-white' : 'text-gray-400'}`}
+                    >
+                      <span className="text-purple-400 font-medium">{item.speaker}:</span> {item.text}
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {!speechSupported && (
+                <div className="text-amber-400 text-sm">
+                  ⚠️ Speech recognition not available in this browser. Try Chrome or Safari.
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Controls */}
           <div className="flex items-center justify-center gap-4 py-4">
@@ -460,6 +589,18 @@ export function SpeedDatingRoomComponent({
               className={`p-4 rounded-full transition-all ${isCamOff ? 'bg-red-600 hover:bg-red-500' : 'bg-gray-700 hover:bg-gray-600'} text-white`}
             >
               {isCamOff ? <IconVideoOff size={24} /> : <IconVideo size={24} />}
+            </button>
+            
+            {/* Captions toggle */}
+            <button
+              onClick={() => setShowCaptions(!showCaptions)}
+              className={`p-4 rounded-full transition-all ${showCaptions ? 'bg-purple-600 hover:bg-purple-500' : 'bg-gray-700 hover:bg-gray-600'} text-white relative`}
+              title="Toggle Captions"
+            >
+              <IconScript size={24} />
+              {isListening && showCaptions && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              )}
             </button>
             
             <div className="w-px h-10 bg-gray-700" />

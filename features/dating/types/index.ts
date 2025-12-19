@@ -3,17 +3,17 @@
 export interface UserProfile {
   id: string;
   name: string;
-  age: number;
-  gender: 'male' | 'female' | 'non-binary' | 'other';
-  lookingFor: ('male' | 'female' | 'non-binary' | 'other')[];
-  bio: string;
-  avatar: string;
-  interests: string[];
-  location: string;
-  occupation: string;
-  education: string;
+  age?: number;
+  gender?: 'male' | 'female' | 'non-binary' | 'other' | string;
+  lookingFor?: ('male' | 'female' | 'non-binary' | 'other' | string)[];
+  bio?: string;
+  avatar?: string;
+  interests?: string[];
+  location?: string;
+  occupation?: string;
+  education?: string;
   // Personality traits for compatibility scoring (1-10)
-  traits: {
+  traits?: {
     adventurous: number;
     intellectual: number;
     social: number;
@@ -23,7 +23,7 @@ export interface UserProfile {
     spontaneous: number;
     traditional: number;
   };
-  preferences: {
+  preferences?: {
     ageMin: number;
     ageMax: number;
     maxDistance: number;
@@ -46,28 +46,39 @@ export interface CompatibilityScore {
 export interface SpeedDatingEvent {
   id: string;
   name: string;
-  description: string;
-  startTime: Date;
-  endTime: Date;
-  maxSeats: number;
-  currentParticipants: string[]; // user IDs
-  waitlist: string[]; // user IDs
-  roundDurationMinutes: number;
+  description?: string;
+  hostId: string;
+  maxParticipants: number;
+  roundDuration: number; // in seconds
   status: 'upcoming' | 'active' | 'completed' | 'cancelled';
+  currentRound: number;
+  participants: string[]; // user IDs
+  waitlist: string[]; // user IDs
+  waitingRoom: string[]; // users waiting to be matched
+  activeRooms: SpeedDatingRoom[];
+  scheduledStart?: Date;
+  // Legacy fields for compatibility
+  startTime?: Date;
+  endTime?: Date;
+  maxSeats?: number;
+  currentParticipants?: string[];
+  roundDurationMinutes?: number;
   theme?: string;
   ageRange?: { min: number; max: number };
-  hostId: string;
 }
 
 export interface SpeedDatingRoom {
   id: string;
   eventId: string;
   channelName: string; // Agora channel name
-  participants: [string, string]; // exactly 2 user IDs
+  participants: string[]; // user IDs (usually 2)
   roundNumber: number;
-  startTime: Date;
-  endTime: Date;
   status: 'waiting' | 'active' | 'completed';
+  startedAt?: Date;
+  endedAt?: Date;
+  // Legacy fields for compatibility
+  startTime?: Date;
+  endTime?: Date;
   transcript?: TranscriptEntry[];
   aiSummary?: string;
   compatibilityNotes?: string;
@@ -88,9 +99,11 @@ export interface Match {
   roomId?: string;
   compatibilityScore: number;
   status: 'pending' | 'accepted' | 'rejected' | 'mutual';
-  user1Action?: 'liked' | 'passed';
-  user2Action?: 'liked' | 'passed';
-  createdAt: Date;
+  user1Action?: 'like' | 'pass' | 'liked' | 'passed';
+  user2Action?: 'like' | 'pass' | 'liked' | 'passed';
+  createdAt?: Date;
+  transcript?: string;
+  aiSummary?: string;
   conversationSummary?: string;
 }
 
@@ -147,4 +160,3 @@ export interface SpeedDatingUIState {
   totalRounds: number;
   pendingMatches: Match[];
 }
-

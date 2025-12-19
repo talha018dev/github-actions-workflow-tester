@@ -1,13 +1,13 @@
-// Individual Event API
-import { NextRequest, NextResponse } from 'next/server';
+// Individual Event API - Using SQLite Database
 import {
-  getEventState,
-  startEvent,
-  endEvent,
+  getEvent,
+  getEventMatches,
   getUserRoom,
-  isUserWaiting,
   startNextRound,
-} from '@/features/dating/services/eventManager';
+  updateEventStatus,
+  updateRoomStatus,
+} from '@/features/dating/database/datingService';
+import { NextRequest, NextResponse } from 'next/server';
 
 type RouteParams = {
   params: Promise<{ eventId: string }>;
@@ -19,9 +19,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
   
-  const eventState = getEventState(eventId);
+  const event = getEvent(eventId);
   
-  if (!eventState) {
+  if (!event) {
     return NextResponse.json(
       { success: false, error: 'Event not found' },
       { status: 404 }
@@ -30,17 +30,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   
   const response: Record<string, unknown> = {
     success: true,
-    event: eventState.event,
-    currentRound: eventState.currentRound,
-    totalRounds: eventState.rounds.length,
-    participantCount: eventState.event.currentParticipants.length,
-    waitlistCount: eventState.event.waitlist.length,
+    event: {
+      id: event.id,
+      name: event.name,
+      description: event.description,
+      status: event.status,
+      currentRound: event.currentRound,
+      maxParticipants: event.maxParticipants,
+      roundDuration: event.roundDuration,
+      currentParticipants: event.participants,
+    },
+    currentRound: event.currentRound,
+    participantCount: event.participants.length,
+    waitlistCount: event.waitlist.length,
   };
   
   // If userId provided, include their specific state
   if (userId) {
     const userRoom = getUserRoom(eventId, userId);
-    const isWaiting = isUserWaiting(eventId, userId);
+    const isWaiting = event.waitlist.includes(userId);
     
     response.userState = {
       isInRoom: !!userRoom,
@@ -48,15 +56,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: userRoom.id,
         eventId: userRoom.eventId,
         channelName: userRoom.channelName,
-        participants: userRoom.participants, // Include full participants array
+        participants: userRoom.participants,
         partnerId: userRoom.participants.find(id => id !== userId),
         roundNumber: userRoom.roundNumber,
-        startTime: userRoom.startTime,
-        endTime: userRoom.endTime,
+        startTime: userRoom.startedAt,
+        endTime: userRoom.endedAt,
         status: userRoom.status,
       } : null,
       isWaiting,
-      waitingPosition: isWaiting ? eventState.waitingRoom.indexOf(userId) + 1 : null,
+      waitingPosition: isWaiting ? event.waitlist.indexOf(userId) + 1 : null,
     };
   }
   
@@ -71,9 +79,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
     const { action } = body;
     
-    const eventState = getEventState(eventId);
+    const event = getEvent(eventId);
     
-    if (!eventState) {
+    if (!event) {
       return NextResponse.json(
         { success: false, error: 'Event not found' },
         { status: 404 }
@@ -82,49 +90,44 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     
     switch (action) {
       case 'start': {
-        const result = await startEvent(eventId);
-        
-        if (!result.success) {
+        if (event.participants.length < 2) {
           return NextResponse.json(
-            { success: false, error: result.error },
+            { success: false, error: 'Need at least 2 participants to start' },
             { status: 400 }
           );
         }
         
-        const updatedState = getEventState(eventId);
+        // Start first round
+        const result = startNextRound(eventId);
         
         return NextResponse.json({
           success: true,
           message: 'Event started',
-          currentRound: updatedState?.currentRound,
-          activeRooms: updatedState?.activeRooms.length,
+          currentRound: result.round,
+          activeRooms: result.rooms.length,
         });
       }
       
       case 'nextRound': {
-        const round = await startNextRound(eventId);
-        
-        if (!round) {
-          return NextResponse.json(
-            { success: false, error: 'Failed to start next round' },
-            { status: 500 }
-          );
-        }
+        const result = startNextRound(eventId);
         
         return NextResponse.json({
           success: true,
           round: {
-            roundNumber: round.roundNumber,
-            startTime: round.startTime,
-            endTime: round.endTime,
-            roomCount: round.rooms.length,
-            waitingCount: round.waitingUsers.length,
+            roundNumber: result.round,
+            roomCount: result.rooms.length,
           },
         });
       }
       
       case 'end': {
-        const matches = await endEvent(eventId);
+        // Mark all rooms as completed
+        for (const room of event.activeRooms) {
+          updateRoomStatus(room.id, 'completed');
+        }
+        
+        updateEventStatus(eventId, 'completed', event.currentRound);
+        const matches = getEventMatches(eventId);
         
         return NextResponse.json({
           success: true,
@@ -145,14 +148,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         }
         
         const userRoom = getUserRoom(eventId, userId);
-        const isWaiting = isUserWaiting(eventId, userId);
+        const isWaiting = event.waitlist.includes(userId);
         
         return NextResponse.json({
           success: true,
           hasRoom: !!userRoom,
           room: userRoom,
           isWaiting,
-          waitingPosition: isWaiting ? eventState.waitingRoom.indexOf(userId) + 1 : null,
+          waitingPosition: isWaiting ? event.waitlist.indexOf(userId) + 1 : null,
         });
       }
       
@@ -170,4 +173,3 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     );
   }
 }
-

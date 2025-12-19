@@ -1,16 +1,15 @@
-// Debug API to check event state
+// Debug API to check database state
 import { NextResponse } from 'next/server';
-import { getEventState, getAllEvents, getUserProfile } from '@/features/dating/services/eventManager';
+import { getDebugInfo, getAllEvents, getUser } from '@/features/dating/database/datingService';
 
 export async function GET() {
+  const debugInfo = getDebugInfo();
   const events = getAllEvents();
   
-  const debugInfo = events.map(event => {
-    const state = getEventState(event.id);
-    
+  const detailedEvents = events.map(event => {
     // Get profile info for participants
-    const participantDetails = event.currentParticipants.map(id => {
-      const profile = getUserProfile(id);
+    const participantDetails = event.participants.map(id => {
+      const profile = getUser(id);
       return { id, hasProfile: !!profile, name: profile?.name };
     });
     
@@ -19,25 +18,24 @@ export async function GET() {
       name: event.name,
       status: event.status,
       participants: participantDetails,
-      participantCount: event.currentParticipants.length,
+      participantCount: event.participants.length,
       waitlist: event.waitlist,
-      waitingRoom: state?.waitingRoom || [],
-      currentRound: state?.currentRound || 0,
-      activeRooms: state?.activeRooms?.map(room => ({
+      currentRound: event.currentRound,
+      activeRooms: event.activeRooms.map(room => ({
         id: room.id,
         channelName: room.channelName,
         participants: room.participants,
+        roundNumber: room.roundNumber,
         status: room.status,
-      })) || [],
-      activeRoomCount: state?.activeRooms?.length || 0,
+      })),
+      activeRoomCount: event.activeRooms.length,
     };
   });
   
   return NextResponse.json({
-    message: 'Dating Events Debug Info',
+    message: 'Dating Database Debug Info (SQLite In-Memory)',
     timestamp: new Date().toISOString(),
-    totalEvents: events.length,
-    events: debugInfo,
+    summary: debugInfo,
+    events: detailedEvents,
   });
 }
-

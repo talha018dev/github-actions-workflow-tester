@@ -1,23 +1,46 @@
-// Dating Events API
-import { NextRequest, NextResponse } from 'next/server';
+// Dating Events API - Using SQLite Database
+import { DEMO_USERS } from '@/features/dating/data/demoUsers';
 import {
+  addParticipant,
   createEvent,
+  createUser,
   getAllEvents,
-  getActiveEvents,
-  joinEvent,
-  leaveEvent,
-  registerUserProfile,
-  initializeDemoEvent,
-} from '@/features/dating/services/eventManager';
+  getEvent,
+  getUser,
+  removeParticipant,
+} from '@/features/dating/database/datingService';
 import type { UserProfile } from '@/features/dating/types';
+import { NextRequest, NextResponse } from 'next/server';
 
-// Initialize demo event on first load
+// Initialize demo data on first load
 let initialized = false;
 
 function ensureInitialized() {
   if (!initialized) {
-    initializeDemoEvent();
+    // Register demo users
+    for (const user of DEMO_USERS) {
+      const existing = getUser(user.id);
+      if (!existing) {
+        createUser(user);
+      }
+    }
+    
+    // Create a demo event
+    const existingEvents = getAllEvents();
+    if (existingEvents.length === 0) {
+      createEvent({
+        id: `event-${Date.now()}-demo`,
+        name: 'Friday Night Speed Dating 💕',
+        description: 'Meet amazing people in 5-minute rounds!',
+        hostId: 'system',
+        maxParticipants: 40,
+        roundDuration: 300,
+        status: 'upcoming',
+      });
+    }
+    
     initialized = true;
+    console.log('🚀 Dating app initialized with demo data');
   }
 }
 
@@ -28,7 +51,11 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const activeOnly = searchParams.get('active') === 'true';
   
-  const events = activeOnly ? getActiveEvents() : getAllEvents();
+  let events = getAllEvents();
+  
+  if (activeOnly) {
+    events = events.filter(e => e.status === 'active');
+  }
   
   return NextResponse.json({
     success: true,
@@ -47,7 +74,7 @@ export async function POST(request: NextRequest) {
     
     switch (action) {
       case 'create': {
-        const { name, description, maxSeats, roundDurationMinutes, hostId, theme, ageRange, startTime, endTime } = body;
+        const { name, description, maxSeats, roundDurationMinutes, hostId } = body;
         
         if (!name || !maxSeats || !hostId) {
           return NextResponse.json(
@@ -57,15 +84,13 @@ export async function POST(request: NextRequest) {
         }
         
         const event = createEvent({
+          id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           name,
           description: description || '',
-          maxSeats,
-          roundDurationMinutes: roundDurationMinutes || 5,
           hostId,
-          theme,
-          ageRange,
-          startTime: startTime ? new Date(startTime) : new Date(Date.now() + 60 * 60 * 1000),
-          endTime: endTime ? new Date(endTime) : new Date(Date.now() + 3 * 60 * 60 * 1000),
+          maxParticipants: maxSeats,
+          roundDuration: (roundDurationMinutes || 5) * 60,
+          status: 'upcoming',
         });
         
         return NextResponse.json({
@@ -86,22 +111,26 @@ export async function POST(request: NextRequest) {
         
         // Register user profile if provided
         if (userProfile) {
-          registerUserProfile(userProfile as UserProfile);
+          createUser(userProfile as UserProfile);
         }
         
-        const result = joinEvent(eventId, userId);
-        
-        if (!result.success) {
+        const event = getEvent(eventId);
+        if (!event) {
           return NextResponse.json(
-            { success: false, error: result.error },
-            { status: 400 }
+            { success: false, error: 'Event not found' },
+            { status: 404 }
           );
         }
         
+        const joined = addParticipant(eventId, userId);
+        const updatedEvent = getEvent(eventId);
+        const position = updatedEvent?.participants.indexOf(userId) ?? -1;
+        
         return NextResponse.json({
           success: true,
-          position: result.position,
-          isWaitlisted: result.position! > 40, // Assuming 40 max seats
+          joined,
+          position: position + 1,
+          isWaitlisted: !joined,
         });
       }
       
@@ -115,9 +144,9 @@ export async function POST(request: NextRequest) {
           );
         }
         
-        const success = leaveEvent(eventId, userId);
+        removeParticipant(eventId, userId);
         
-        return NextResponse.json({ success });
+        return NextResponse.json({ success: true });
       }
       
       default:
@@ -134,4 +163,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

@@ -41,7 +41,7 @@ export default function DatingPage() {
         // Check which events current user has joined
         const joined = new Set<string>();
         data.events.forEach((event: SpeedDatingEvent) => {
-          if (event.currentParticipants.includes(DEMO_USER.id) || 
+          if (event?.currentParticipants?.includes(DEMO_USER.id) || 
               event.waitlist.includes(DEMO_USER.id)) {
             joined.add(event.id);
           }
@@ -50,7 +50,7 @@ export default function DatingPage() {
       }
     } catch (error) {
       console.error('Failed to fetch events:', error);
-    } finally {
+  } finally {
       setLoading(false);
     }
   };

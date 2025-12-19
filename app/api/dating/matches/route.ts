@@ -1,29 +1,37 @@
-// Matches API for speed dating
+// Matches API for speed dating - Using SQLite Database
 import { NextRequest, NextResponse } from 'next/server';
-import type { Match } from '@/features/dating/types';
-
-// In-memory store for matches (replace with database in production)
-const matches: Map<string, Match> = new Map();
+import {
+  getEventMatches,
+  getUserMatches,
+  updateMatchAction,
+  updateMatchTranscript,
+  createMatch,
+} from '@/features/dating/database/datingService';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
   const eventId = searchParams.get('eventId');
   
-  let userMatches = Array.from(matches.values());
-  
-  if (userId) {
-    userMatches = userMatches.filter(m => m.user1Id === userId || m.user2Id === userId);
+  if (!eventId) {
+    return NextResponse.json(
+      { success: false, error: 'eventId is required' },
+      { status: 400 }
+    );
   }
   
-  if (eventId) {
-    userMatches = userMatches.filter(m => m.eventId === eventId);
+  let matches;
+  
+  if (userId) {
+    matches = getUserMatches(eventId, userId);
+  } else {
+    matches = getEventMatches(eventId);
   }
   
   return NextResponse.json({
     success: true,
-    matches: userMatches,
-    count: userMatches.length,
+    matches,
+    count: matches.length,
   });
 }
 
@@ -42,66 +50,34 @@ export async function POST(request: NextRequest) {
           );
         }
         
-        const match = matches.get(matchId);
-        if (!match) {
-          return NextResponse.json(
-            { success: false, error: 'Match not found' },
-            { status: 404 }
-          );
-        }
-        
-        // Update the appropriate user's action
-        if (match.user1Id === userId) {
-          match.user1Action = userAction;
-        } else if (match.user2Id === userId) {
-          match.user2Action = userAction;
-        } else {
-          return NextResponse.json(
-            { success: false, error: 'User not part of this match' },
-            { status: 400 }
-          );
-        }
-        
-        // Check if it's a mutual match
-        if (match.user1Action === 'liked' && match.user2Action === 'liked') {
-          match.status = 'mutual';
-        } else if (match.user1Action && match.user2Action) {
-          // Both have acted but not both liked
-          match.status = 'rejected';
-        }
-        
-        matches.set(matchId, match);
+        updateMatchAction(matchId, userId, userAction);
         
         return NextResponse.json({
           success: true,
-          match,
-          isMutual: match.status === 'mutual',
+          message: 'Match action recorded',
         });
       }
       
       case 'create': {
-        // Create a new match record (called by event manager)
+        // Create a new match record
         const { user1Id, user2Id, eventId, roomId, compatibilityScore } = body;
         
-        if (!user1Id || !user2Id) {
+        if (!user1Id || !user2Id || !eventId) {
           return NextResponse.json(
-            { success: false, error: 'Missing required fields: user1Id, user2Id' },
+            { success: false, error: 'Missing required fields: user1Id, user2Id, eventId' },
             { status: 400 }
           );
         }
         
-        const newMatch: Match = {
+        const newMatch = createMatch({
           id: `match-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           user1Id,
           user2Id,
           eventId,
-          roomId,
+          roomId: roomId || '',
           compatibilityScore: compatibilityScore || 50,
           status: 'pending',
-          createdAt: new Date(),
-        };
-        
-        matches.set(newMatch.id, newMatch);
+        });
         
         return NextResponse.json({
           success: true,
@@ -111,29 +87,20 @@ export async function POST(request: NextRequest) {
       
       case 'updateSummary': {
         // Update match with conversation summary
-        const { conversationSummary } = body;
+        const { transcript, aiSummary } = body;
         
-        if (!matchId || !conversationSummary) {
+        if (!matchId) {
           return NextResponse.json(
-            { success: false, error: 'Missing required fields: matchId, conversationSummary' },
+            { success: false, error: 'Missing required field: matchId' },
             { status: 400 }
           );
         }
         
-        const match = matches.get(matchId);
-        if (!match) {
-          return NextResponse.json(
-            { success: false, error: 'Match not found' },
-            { status: 404 }
-          );
-        }
-        
-        match.conversationSummary = conversationSummary;
-        matches.set(matchId, match);
+        updateMatchTranscript(matchId, transcript || '', aiSummary);
         
         return NextResponse.json({
           success: true,
-          match,
+          message: 'Transcript updated',
         });
       }
       
@@ -151,4 +118,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

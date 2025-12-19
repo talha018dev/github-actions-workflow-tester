@@ -1,7 +1,7 @@
-// User Profile API for dating
-import { NextRequest, NextResponse } from 'next/server';
-import { registerUserProfile, getUserProfile } from '@/features/dating/services/eventManager';
+// User Profile API for dating - Using SQLite Database
+import { createUser, getUser } from '@/features/dating/database/datingService';
 import type { UserProfile } from '@/features/dating/types';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     );
   }
   
-  const profile = getUserProfile(userId);
+  const profile = getUser(userId);
   
   if (!profile) {
     return NextResponse.json(
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Validate required fields
-        const requiredFields = ['name', 'age', 'gender', 'lookingFor'];
+        const requiredFields = ['name'];
         for (const field of requiredFields) {
           if (!profile[field]) {
             return NextResponse.json(
@@ -59,33 +59,16 @@ export async function POST(request: NextRequest) {
         const fullProfile: UserProfile = {
           id: profile.id,
           name: profile.name,
-          age: profile.age,
-          gender: profile.gender,
-          lookingFor: profile.lookingFor,
+          age: profile.age || 25,
+          gender: profile.gender || 'other',
+          lookingFor: profile.lookingFor || ['everyone'],
           bio: profile.bio || '',
           avatar: profile.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.id}`,
           interests: profile.interests || [],
           location: profile.location || '',
-          occupation: profile.occupation || '',
-          education: profile.education || '',
-          traits: profile.traits || {
-            adventurous: 5,
-            intellectual: 5,
-            social: 5,
-            romantic: 5,
-            ambitious: 5,
-            creative: 5,
-            spontaneous: 5,
-            traditional: 5,
-          },
-          preferences: profile.preferences || {
-            ageMin: 18,
-            ageMax: 99,
-            maxDistance: 100,
-          },
         };
         
-        registerUserProfile(fullProfile);
+        createUser(fullProfile);
         
         return NextResponse.json({
           success: true,
@@ -107,4 +90,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

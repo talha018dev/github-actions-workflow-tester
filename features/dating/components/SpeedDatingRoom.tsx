@@ -196,7 +196,31 @@ export function SpeedDatingRoomComponent({
     if (!client) return;
     
     try {
-      await client.join(APP_ID, room.channelName, null, currentUser.id);
+      // Fetch token from our API
+      let token: string | null = null;
+      let uid: string | number = currentUser.id;
+      
+      try {
+        const tokenResponse = await fetch('/api/agora/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelName: room.channelName,
+            uid: currentUser.id,
+            role: 'publisher',
+          }),
+        });
+        const tokenData = await tokenResponse.json();
+        if (tokenData.token) {
+          token = tokenData.token;
+          uid = tokenData.uid || currentUser.id;
+        }
+      } catch (tokenError) {
+        console.warn("Could not fetch token, trying without:", tokenError);
+      }
+      
+      // Join with token if available, otherwise try without (for App ID only mode)
+      await client.join(APP_ID, room.channelName, token, uid);
       
       const [micTrack, camTrack] = await agoraRTC.createMicrophoneAndCameraTracks();
       setLocalAudioTrack(micTrack);

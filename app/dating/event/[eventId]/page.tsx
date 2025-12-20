@@ -76,7 +76,7 @@ export default function EventPage() {
             return [...prev, {
               oderId: partnerId,
               partnerName: partner.name,
-              partnerAvatar: partner.avatar,
+              partnerAvatar: partner.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${partnerId}`,
               roundNumber: room.roundNumber,
             }];
           }
@@ -250,7 +250,7 @@ export default function EventPage() {
     case 'matched':
       if (currentRoom) {
         // Calculate total rounds based on participant count
-        const totalParticipants = event.currentParticipants.length;
+        const totalParticipants = event.currentParticipants?.length || event.participants?.length || 4;
         const totalRounds = Math.max(Math.ceil(Math.log2(totalParticipants)) + 1, 3);
         
         return (

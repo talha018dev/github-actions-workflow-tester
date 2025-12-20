@@ -11,12 +11,12 @@ interface EventCardProps {
 }
 
 export function EventCard({ event, onJoin, isJoined, currentUserId }: EventCardProps) {
-  const isParticipant = currentUserId && event.currentParticipants.includes(currentUserId);
-  const isWaitlisted = currentUserId && event.waitlist.includes(currentUserId);
-  const spotsLeft = event.maxSeats - event.currentParticipants.length;
+  const isParticipant = currentUserId && event.currentParticipants?.includes(currentUserId) || false;
+  const isWaitlisted = currentUserId && event.waitlist?.includes(currentUserId) || false;
+  const spotsLeft = event.maxSeats ? event.maxSeats - (event.currentParticipants?.length || 0) : 0;
   const isFull = spotsLeft <= 0;
   
-  const startDate = new Date(event.startTime);
+  const startDate = new Date(event.startTime || '');
   const formattedDate = startDate.toLocaleDateString('en-US', { 
     weekday: 'short', 
     month: 'short', 
@@ -95,7 +95,7 @@ export function EventCard({ event, onJoin, isJoined, currentUserId }: EventCardP
           
           <div className="flex items-center text-gray-300 text-sm">
             <IconUsers size={16} className="mr-2 text-rose-400" />
-            {event.currentParticipants.length} / {event.maxSeats} joined
+            {event.currentParticipants?.length || 0} / {event.maxSeats || 0} joined
             {event.waitlist.length > 0 && (
               <span className="ml-2 text-amber-400">
                 (+{event.waitlist.length} waitlist)
@@ -114,14 +114,14 @@ export function EventCard({ event, onJoin, isJoined, currentUserId }: EventCardP
         <div className="mb-4">
           <div className="flex justify-between text-xs text-gray-400 mb-1">
             <span>{spotsLeft > 0 ? `${spotsLeft} spots left` : 'Event full'}</span>
-            <span>{Math.round((event.currentParticipants.length / event.maxSeats) * 100)}%</span>
+            <span>{Math.round((event.currentParticipants?.length || 0 / (event?.maxSeats || 0)) * 100)}%</span>
           </div>
           <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
             <div 
               className={`h-full rounded-full transition-all duration-500 ${
                 isFull ? 'bg-red-500' : spotsLeft <= 5 ? 'bg-amber-500' : 'bg-rose-500'
               }`}
-              style={{ width: `${Math.min(100, (event.currentParticipants.length / event.maxSeats) * 100)}%` }}
+              style={{ width: `${Math.min(100, (event.currentParticipants?.length || 0 / (event?.maxSeats || 0)) * 100)}%` }}
             />
           </div>
         </div>

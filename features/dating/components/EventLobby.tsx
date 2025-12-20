@@ -36,7 +36,7 @@ export function EventLobby({
   useEffect(() => {
     const updateCountdown = () => {
       const now = Date.now();
-      const start = new Date(event.startTime).getTime();
+      const start = new Date(event?.startTime || '').getTime();
       const diff = start - now;
       
       if (diff <= 0) {
@@ -65,7 +65,7 @@ export function EventLobby({
     return `${secs}s`;
   };
   
-  const startDate = new Date(event.startTime);
+  const startDate = new Date(event?.startTime || '');
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-purple-950/20 to-rose-950/20 p-8">
@@ -104,7 +104,7 @@ export function EventLobby({
           <div className="bg-gray-900/60 backdrop-blur border border-gray-800 rounded-2xl p-6 text-center">
             <IconUsers size={28} className="mx-auto text-rose-400 mb-3" />
             <div className="text-gray-400 text-sm mb-1">Participants</div>
-            <div className="text-white font-semibold">{event.currentParticipants.length} / {event.maxSeats}</div>
+            <div className="text-white font-semibold">{event.currentParticipants?.length || 0} / {event.maxSeats || 0}</div>
             <div className="text-gray-300 text-sm">spots filled</div>
           </div>
         </div>

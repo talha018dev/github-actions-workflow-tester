@@ -538,7 +538,7 @@ export function SpeedDatingRoomComponent({
                     </div>
                     {partner && (
                       <div className="flex flex-wrap gap-1">
-                        {partner.interests.slice(0, 3).map(interest => (
+                        {partner.interests?.slice(0, 3).map(interest => (
                           <span 
                             key={interest}
                             className="px-2 py-0.5 bg-rose-500/30 text-rose-300 rounded-full text-xs"

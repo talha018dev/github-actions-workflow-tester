@@ -102,7 +102,7 @@ export default function DatingPage() {
             
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
               Find Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-500">Perfect Match</span>
-              <br />in Minutes
+              <br />in Minutes (Old build without sql)
             </h1>
             
             <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10">

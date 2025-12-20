@@ -1,5 +1,5 @@
-import { db, queries } from './index';
-import type { UserProfile, SpeedDatingEvent, SpeedDatingRoom, Match } from '../types';
+import type { Match, SpeedDatingEvent, SpeedDatingRoom, UserProfile } from '../types';
+import { queries } from './index';
 
 // ============ USER OPERATIONS ============
 
@@ -241,6 +241,24 @@ export function createMatch(match: Omit<Match, 'createdAt'>): Match {
   };
 }
 
+export function getAllMatches(): Match[] {
+  const rows = queries.matches.getAll.all() as Record<string, unknown>[];
+  return rows.map(row => ({
+    id: row.id as string,
+    eventId: row.event_id as string,
+    roomId: row.room_id as string,
+    user1Id: row.user1_id as string,
+    user2Id: row.user2_id as string,
+    compatibilityScore: row.compatibility_score as number,
+    user1Action: row.user1_action as 'like' | 'pass' | undefined,
+    user2Action: row.user2_action as 'like' | 'pass' | undefined,
+    status: row.status as 'pending' | 'mutual' | 'rejected',
+    transcript: row.transcript as string | undefined,
+    aiSummary: row.ai_summary as string | undefined,
+    createdAt: row.created_at ? new Date(row.created_at as string) : undefined,
+  }));
+}
+
 export function getEventMatches(eventId: string): Match[] {
   const rows = queries.matches.getByEvent.all(eventId) as Record<string, unknown>[];
   return rows.map(row => ({
@@ -395,19 +413,13 @@ export function startNextRound(eventId: string): { round: number; rooms: SpeedDa
 export function getDebugInfo() {
   const events = getAllEvents();
   const users = getAllUsers();
+  const matches = getAllMatches();
   
   return {
-    totalEvents: events.length,
-    totalUsers: users.length,
-    events: events.map(e => ({
-      id: e.id,
-      name: e.name,
-      status: e.status,
-      participants: e.participants.length,
-      currentRound: e.currentRound,
-      activeRooms: e.activeRooms.length,
-    })),
-    users: users.map(u => ({ id: u.id, name: u.name })),
+    users: users.length,
+    events: events.length,
+    rooms: events.reduce((acc, e) => acc + e.activeRooms.length, 0),
+    matches: matches.length,
   };
 }
 

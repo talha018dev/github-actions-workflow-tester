@@ -46,7 +46,7 @@ function initializeSchema(db: Database.Database) {
     )
   `);
 
-  // Events table
+  // Events table (host_id is optional, no foreign key to allow system-created events)
   db.exec(`
     CREATE TABLE IF NOT EXISTS events (
       id TEXT PRIMARY KEY,
@@ -58,8 +58,7 @@ function initializeSchema(db: Database.Database) {
       status TEXT DEFAULT 'upcoming', -- upcoming, active, completed
       current_round INTEGER DEFAULT 0,
       scheduled_start DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (host_id) REFERENCES users(id)
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -217,6 +216,7 @@ export const queries = {
       INSERT INTO matches (id, event_id, room_id, user1_id, user2_id, compatibility_score, status)
       VALUES (@id, @eventId, @roomId, @user1Id, @user2Id, @compatibilityScore, @status)
     `),
+    getAll: db.prepare('SELECT * FROM matches'),
     getByEvent: db.prepare('SELECT * FROM matches WHERE event_id = ?'),
     getByUser: db.prepare('SELECT * FROM matches WHERE event_id = ? AND (user1_id = ? OR user2_id = ?)'),
     updateAction: db.prepare(`

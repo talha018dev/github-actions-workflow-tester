@@ -1,15 +1,15 @@
 "use client";
 
 import { CURRENT_TEST_USER, DEMO_USERS } from "@/features/dating/data/demoUsers";
-import type { SpeedDatingEvent, SpeedDatingRoom, UserProfile } from "@/features/dating/types";
+import type { SpeedDatingEvent } from "@/features/dating/types";
 import {
-  IconCheck,
-  IconHeart,
-  IconPlayerPlay,
-  IconRefresh,
-  IconRocket,
-  IconUsers,
-  IconVideo,
+    IconCheck,
+    IconHeart,
+    IconPlayerPlay,
+    IconRefresh,
+    IconRocket,
+    IconUsers,
+    IconVideo,
 } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -48,6 +48,11 @@ export default function DemoPage() {
           endTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
         }),
       });
+      
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Server error (${response.status}): ${text || 'No response body'}`);
+      }
       
       const data = await response.json();
       
@@ -99,6 +104,10 @@ export default function DemoPage() {
           }),
         });
         
+        if (!response.ok) {
+          throw new Error(`Server error (${response.status})`);
+        }
+        
         const data = await response.json();
         
         if (data.success) {
@@ -132,6 +141,11 @@ export default function DemoPage() {
         body: JSON.stringify({ action: 'start' }),
       });
       
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Server error (${response.status}): ${text || 'No response body'}`);
+      }
+      
       const data = await response.json();
       
       if (data.success) {
@@ -160,6 +174,11 @@ export default function DemoPage() {
     
     try {
       const response = await fetch(`/api/dating/events/${event.id}?userId=${CURRENT_TEST_USER.id}`);
+      
+      if (!response.ok) {
+        throw new Error(`Server error (${response.status})`);
+      }
+      
       const data = await response.json();
       
       if (data.success) {

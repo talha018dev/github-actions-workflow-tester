@@ -1,19 +1,18 @@
 // Event management service for speed dating
 
 import type {
-  SpeedDatingEvent,
-  EventState,
   EventRound,
-  SpeedDatingRoom,
-  UserProfile,
-  CompatibilityScore,
+  EventState,
   Match,
+  SpeedDatingEvent,
+  SpeedDatingRoom,
+  UserProfile
 } from '../types';
 import {
+  calculateRequiredRounds,
   createOptimalPairings,
   generateRoomAssignments,
   updateMatchHistory,
-  calculateRequiredRounds,
 } from './matchmaking';
 
 // Use global to persist state across hot reloads in development
@@ -73,7 +72,7 @@ export function joinEvent(eventId: string, userId: string): { success: boolean; 
   const { event } = eventState;
   
   // Check if already registered
-  if (event.currentParticipants.includes(userId) || event.waitlist.includes(userId)) {
+  if (event.currentParticipants?.includes(userId) || event.waitlist?.includes(userId) || false) {
     return { success: false, error: 'Already registered for this event' };
   }
   
@@ -87,12 +86,12 @@ export function joinEvent(eventId: string, userId: string): { success: boolean; 
   }
   
   // Add to participants or waitlist
-  if (event.currentParticipants.length < event.maxSeats) {
+  if (event.currentParticipants?.length && event.maxSeats && event.currentParticipants.length < event.maxSeats) {
     event.currentParticipants.push(userId);
-    return { success: true, position: event.currentParticipants.length };
+    return { success: true, position: event.currentParticipants?.length || 0 };
   } else {
     event.waitlist.push(userId);
-    return { success: true, position: event.maxSeats + event.waitlist.length };
+    return { success: true, position: event.maxSeats ? event.maxSeats + event.waitlist.length : 0 };
   }
 }
 
@@ -106,14 +105,14 @@ export function leaveEvent(eventId: string, userId: string): boolean {
   const { event } = eventState;
   
   // Remove from participants
-  const participantIndex = event.currentParticipants.indexOf(userId);
+  const participantIndex = event.currentParticipants?.indexOf(userId) || -1;
   if (participantIndex > -1) {
-    event.currentParticipants.splice(participantIndex, 1);
+    event.currentParticipants?.splice(participantIndex, 1);
     
     // Move first person from waitlist to participants
     if (event.waitlist.length > 0) {
       const promoted = event.waitlist.shift()!;
-      event.currentParticipants.push(promoted);
+      event.currentParticipants?.push(promoted);
     }
     return true;
   }
@@ -143,7 +142,7 @@ export async function startEvent(eventId: string): Promise<{ success: boolean; e
     return { success: false, error: 'Event cannot be started' };
   }
   
-  if (event.currentParticipants.length < 2) {
+  if (event.currentParticipants?.length && event.currentParticipants.length < 2) {
     return { success: false, error: 'Need at least 2 participants' };
   }
   
@@ -176,7 +175,7 @@ export async function startNextRound(eventId: string): Promise<EventRound | null
   });
   
   // Add current participants not in waiting room
-  event.currentParticipants.forEach(userId => {
+  event.currentParticipants?.forEach(userId => {
     if (!eventState.waitingRoom.includes(userId)) {
       const profile = userProfiles.get(userId);
       if (profile) participants.push(profile);
@@ -186,7 +185,7 @@ export async function startNextRound(eventId: string): Promise<EventRound | null
   // If no profiles found, use dummy data for demo
   const availableParticipants = participants.length > 0 
     ? participants 
-    : event.currentParticipants.map(id => createDemoProfile(id));
+    : event.currentParticipants?.map(id => createDemoProfile(id)) || [];
   
   console.log(`[startNextRound] Round ${eventState.currentRound}`);
   console.log(`[startNextRound] Event participants:`, event.currentParticipants);
@@ -204,7 +203,7 @@ export async function startNextRound(eventId: string): Promise<EventRound | null
     eventId,
     eventState.currentRound,
     pairs,
-    event.roundDurationMinutes
+    event.roundDurationMinutes || 0
   );
   
   // Update match history
@@ -214,7 +213,7 @@ export async function startNextRound(eventId: string): Promise<EventRound | null
   const round: EventRound = {
     roundNumber: eventState.currentRound,
     startTime: new Date(),
-    endTime: new Date(Date.now() + event.roundDurationMinutes * 60 * 1000),
+    endTime: new Date(Date.now() + (event.roundDurationMinutes || 0) * 60 * 1000),
     rooms,
     waitingUsers: waitlist.map(p => p.id),
   };
@@ -229,7 +228,7 @@ export async function startNextRound(eventId: string): Promise<EventRound | null
   // Schedule next round
   setTimeout(() => {
     endCurrentRound(eventId);
-  }, event.roundDurationMinutes * 60 * 1000);
+  }, (event.roundDurationMinutes || 0) * 60 * 1000);
   
   return round;
 }
@@ -249,7 +248,7 @@ async function endCurrentRound(eventId: string): Promise<void> {
   });
   
   // Check if we should continue
-  const maxRounds = calculateRequiredRounds(event.currentParticipants.length);
+  const maxRounds = calculateRequiredRounds(event.currentParticipants?.length || 0);
   
   if (eventState.currentRound >= maxRounds) {
     // End the event
@@ -414,11 +413,14 @@ export function initializeDemoEvent(): SpeedDatingEvent {
   const event = createEvent({
     name: 'Friday Night Speed Dating',
     description: 'Meet amazing singles in our virtual speed dating event! 5-minute dates, new matches every round.',
-    startTime: new Date(Date.now() + 60 * 1000), // Starts in 1 minute
-    endTime: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours
-    maxSeats: 40,
-    roundDurationMinutes: 5,
     hostId: 'host-1',
+    maxParticipants: 40,
+    roundDuration: 300, // 5 minutes in seconds
+    currentRound: 0,
+    participants: [],
+    waitingRoom: [],
+    activeRooms: [],
+    scheduledStart: new Date(Date.now() + 60 * 1000),
     theme: 'Casual Connections',
     ageRange: { min: 21, max: 45 },
   });

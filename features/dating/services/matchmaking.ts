@@ -11,7 +11,7 @@ import type {
  * Calculate compatibility score between two users
  */
 export function calculateCompatibility(user1: UserProfile, user2: UserProfile): CompatibilityScore {
-  const interestMatch = calculateInterestMatch(user1.interests, user2.interests);
+  const interestMatch = calculateInterestMatch(user1?.interests || [], user2?.interests || []);
   const traitCompatibility = calculateTraitCompatibility(user1.traits, user2.traits);
   const preferenceMatch = calculatePreferenceMatch(user1, user2);
   
@@ -73,16 +73,16 @@ function calculateTraitCompatibility(
 ): number {
   // Some traits are better when similar, others when complementary
   const similarityTraits: (keyof UserProfile['traits'])[] = [
-    'intellectual', 'social', 'romantic', 'traditional'
+    'intellectual' as keyof UserProfile['traits'], 'social' as keyof UserProfile['traits'], 'romantic' as keyof UserProfile['traits'], 'traditional' as keyof UserProfile['traits']
   ];
   
   const complementaryTraits: (keyof UserProfile['traits'])[] = [
-    'adventurous', 'ambitious', 'creative', 'spontaneous'
+    'adventurous' as keyof UserProfile['traits'], 'ambitious' as keyof UserProfile['traits'], 'creative' as keyof UserProfile['traits'], 'spontaneous' as keyof UserProfile['traits']
   ];
   
   let similarityScore = 0;
   similarityTraits.forEach(trait => {
-    const diff = Math.abs(traits1[trait] - traits2[trait]);
+    const diff = Math.abs((traits1?.[trait] || 0) - (traits2?.[trait] || 0));
     similarityScore += (10 - diff) / 10;
   });
   similarityScore = (similarityScore / similarityTraits.length) * 100;
@@ -90,7 +90,7 @@ function calculateTraitCompatibility(
   let complementaryScore = 0;
   complementaryTraits.forEach(trait => {
     // Ideal is when combined they're around 12-15 (not too extreme either way)
-    const combined = traits1[trait] + traits2[trait];
+    const combined = (traits1?.[trait] || 0) + (traits2?.[trait] || 0);
     const ideal = 12;
     const deviation = Math.abs(combined - ideal);
     complementaryScore += Math.max(0, (10 - deviation)) / 10;
@@ -107,14 +107,14 @@ function calculatePreferenceMatch(user1: UserProfile, user2: UserProfile): numbe
   let score = 100;
   
   // Gender preference check
-  if (!user1.lookingFor.includes(user2.gender)) score -= 30;
-  if (!user2.lookingFor.includes(user1.gender)) score -= 30;
+  if (!user1.lookingFor?.includes(user2.gender || '')) score -= 30;
+  if (!user2.lookingFor?.includes(user1.gender || '')) score -= 30;
   
   // Age preference check
-  if (user2.age < user1.preferences.ageMin || user2.age > user1.preferences.ageMax) {
+  if (user2.age && user1.preferences?.ageMin && user2.age < user1.preferences.ageMin || user2.age && user1.preferences?.ageMax && user2.age > user1.preferences.ageMax) {
     score -= 20;
   }
-  if (user1.age < user2.preferences.ageMin || user1.age > user2.preferences.ageMax) {
+  if (user1.age && user2.preferences?.ageMin && user1.age < user2.preferences.ageMin || user1.age && user2.preferences?.ageMax && user1.age > user2.preferences.ageMax) {
     score -= 20;
   }
   
@@ -277,7 +277,7 @@ export function generateAIMatchSuggestions(
   const suggestions: Map<string, { partnerId: string; reason: string; score: number }[]> = new Map();
   
   // For each user, compile their interactions
-  eventState.event.currentParticipants.forEach(userId => {
+  eventState.event.currentParticipants?.forEach(userId => {
     const userSuggestions: { partnerId: string; reason: string; score: number }[] = [];
     
     // Get all rooms this user participated in

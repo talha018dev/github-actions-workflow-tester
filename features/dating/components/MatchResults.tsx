@@ -127,7 +127,7 @@ export function MatchResults({
                         <p className="text-gray-400 text-sm mb-3">{partner.occupation} • {partner.location}</p>
                         
                         <div className="flex flex-wrap gap-2 mb-4">
-                          {partner.interests.slice(0, 3).map(interest => (
+                          {partner.interests?.slice(0, 3).map(interest => (
                             <span 
                               key={interest}
                               className="px-2 py-1 bg-rose-500/20 text-rose-300 rounded-full text-xs"
@@ -207,7 +207,7 @@ export function MatchResults({
                         <p className="text-gray-400 text-sm">{partner.occupation}</p>
                         
                         <div className="flex flex-wrap gap-1 mt-2">
-                          {partner.interests.slice(0, 3).map(interest => (
+                          {partner.interests?.slice(0, 3).map(interest => (
                             <span 
                               key={interest}
                               className="px-2 py-0.5 bg-gray-800 text-gray-400 rounded-full text-xs"

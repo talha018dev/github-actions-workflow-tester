@@ -1,3 +1,5 @@
+'use client'
+
 import { Table, Container, Title, Paper } from '@mantine/core';
 
 const properties = [

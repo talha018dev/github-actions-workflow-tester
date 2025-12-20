@@ -182,7 +182,7 @@ function JoinPageContent() {
                     <div>
                       <h3 className="text-white font-semibold">{event.name}</h3>
                       <p className="text-gray-400 text-sm">
-                        {event.currentParticipants.length} / {event.maxSeats} participants
+                        {event?.currentParticipants?.length || 0} / {event.maxSeats} participants
                         {event.status === 'active' && (
                           <span className="ml-2 text-emerald-400">● Live</span>
                         )}
@@ -207,7 +207,7 @@ function JoinPageContent() {
           
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
             {ALL_USERS.map(user => {
-              const isJoined = currentEvent?.currentParticipants.includes(user.id);
+              const isJoined = currentEvent?.currentParticipants?.includes(user.id) || false;
               
               return (
                 <button
@@ -249,7 +249,7 @@ function JoinPageContent() {
                   <div className="text-white font-semibold">{selectedUser.name}</div>
                   <div className="text-gray-400 text-sm">{selectedUser.occupation} • {selectedUser.location}</div>
                   <div className="flex gap-1 mt-1">
-                    {selectedUser.interests.slice(0, 3).map(i => (
+                    {selectedUser.interests?.slice(0, 3).map(i => (
                       <span key={i} className="px-2 py-0.5 bg-purple-500/30 text-purple-300 rounded-full text-xs">
                         {i}
                       </span>
@@ -280,10 +280,10 @@ function JoinPageContent() {
         </div>
         
         {/* Current participants */}
-        {currentEvent && currentEvent.currentParticipants.length > 0 && (
+        {currentEvent && currentEvent.currentParticipants?.length && currentEvent.currentParticipants.length > 0 && (
           <div className="mt-8 bg-gray-900/60 border border-gray-800 rounded-2xl p-6">
             <h3 className="text-white font-bold mb-4">
-              Current Participants ({currentEvent.currentParticipants.length})
+              Current Participants ({currentEvent.currentParticipants?.length || 0})
             </h3>
             <div className="flex flex-wrap gap-2">
               {currentEvent.currentParticipants.map(userId => {

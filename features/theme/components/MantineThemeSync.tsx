@@ -13,6 +13,7 @@ export function MantineThemeSync() {
       setColorScheme(theme);
     }
   }, [theme, setColorScheme]);
+  
 
   return null;
 }
